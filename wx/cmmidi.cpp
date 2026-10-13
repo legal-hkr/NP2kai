@@ -12,6 +12,8 @@
 #include "soundmng.h"
 
 #include <sys/time.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #if defined(VERMOUTH_LIB)
 const char cmmidi_vermouth[] = "VERMOUTH";

@@ -21,8 +21,8 @@ SCRNMNG scrnmng;
 static SCRNSURF scrnsurf;
 static pthread_mutex_t scrnmutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* forward declarations for UI notification (implemented in np2frame.cpp) */
-extern "C" void np2frame_requestRedraw(void);
+/* UI notification (implemented in np2frame.cpp) */
+#include "np2ui.h"
 
 /* ---- utilities ---- */
 

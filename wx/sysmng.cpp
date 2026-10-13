@@ -8,7 +8,7 @@
 #include <ini.h>
 #include "np2.h"
 #include "dosio.h"
-#include "np2frame.h"
+#include "np2ui.h"
 #include <pccore.h>
 #include <cpucore.h>
 #include <io/iocore.h>
@@ -19,6 +19,12 @@
 #include <common/milstr.h>
 #include <time.h>
 #include <stdio.h>
+
+/* Frontend tag after the program name in the title; a port reusing this file
+ * may define its own in compiler.h. */
+#ifndef NP2_WX_TITLESUFFIX
+#define NP2_WX_TITLESUFFIX " wx"
+#endif
 
 #if defined(SUPPORT_IDEIO)
 extern REG8 cdchange_drv;
@@ -161,7 +167,7 @@ void sysmng_updatecaption(UINT8 flag)
 	}
 
 	milstr_ncpy(work, NP2_WX_APPNAME, sizeof(work));
-	milstr_ncat(work, " wx", sizeof(work));
+	milstr_ncat(work, NP2_WX_TITLESUFFIX, sizeof(work));
 #if defined(SUPPORT_STATSAVE)
 	if (np2_stateslotnow > 0) {
 		char slot[32];

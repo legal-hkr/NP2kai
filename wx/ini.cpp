@@ -9,9 +9,7 @@
 #include <dosio.h>
 #include <sysmng.h>
 
-#include <wx/filefn.h>
-#include <wx/stdpaths.h>
-#include <wx/filename.h>
+#include <sys/stat.h>
 
 #include <toml++/toml.hpp>
 #include <fstream>
