@@ -432,7 +432,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wall -DDEBUG -DTRACE ${COMMON_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -Wall -DNDEBUG ${COMMON_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -Wall")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -g -Wall -DNDEBUG")
-set(CMAKE_C_FLAGS ${COMMON_C_FLAGS})
+# Append rather than assign, so CFLAGS/CXXFLAGS from the environment survive.
+# C++ gets its one switch under every build type, not just the named ones; the
+# -Wno-* switches are C-only and would only draw warnings from cc1plus.
+string(APPEND CMAKE_C_FLAGS " ${COMMON_C_FLAGS}")
+string(APPEND CMAKE_CXX_FLAGS " -fno-sized-deallocation")
 else()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_FLAGS}")
