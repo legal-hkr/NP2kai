@@ -293,17 +293,15 @@ void MainWindow::buildMenus()
 	m_actKeyDisp->setStatusTip(tr("Show the notes the FM and MIDI channels play"));
 
 	QMenu *size = disp->addMenu(tr("&Screen Size"));
+	auto *sizeGroup = new QActionGroup(this);
+	/* A window sized by hand is none of them */
+	sizeGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
 	for (int scale = 1; scale <= 3; scale++) {
-		m_actSize[scale - 1] = size->addAction(QString(), this, [this, scale]() { setScreenScale(scale); });
+		m_actSize[scale - 1] = size->addAction(tr("&x%1").arg(scale), this, [this, scale]() { setScreenScale(scale); });
+		m_actSize[scale - 1]->setCheckable(true);
+		sizeGroup->addAction(m_actSize[scale - 1]);
 	}
-	size->addAction(tr("&Full Screen"), this, [this]() {
-		if (!isFullScreen()) {
-			toggleFullScreen();
-		}
-	});
-	/* The PC-98 screen is 640x400, or 640x480 with the window accelerator */
 	connect(size, &QMenu::aboutToShow, this, &MainWindow::updateSizeMenu);
-	updateSizeMenu();
 
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
 	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel)
@@ -674,6 +672,8 @@ void MainWindow::fitToFrame(const QSize &previous)
 	}
 }
 
+/* Marks the scale the window is at; the PC-98 screen is 640x400, or 640x480
+ * with the window accelerator */
 void MainWindow::updateSizeMenu()
 {
 	int w, h;
@@ -681,8 +681,9 @@ void MainWindow::updateSizeMenu()
 	if (scrnmode & SCRNMODE_ROTATE) {
 		std::swap(w, h);
 	}
+	const bool windowed = !isFullScreen() && !isMaximized();
 	for (int scale = 1; scale <= 3; scale++) {
-		m_actSize[scale - 1]->setText(tr("&x%1 (%2x%3)").arg(scale).arg(w * scale).arg(h * scale));
+		m_actSize[scale - 1]->setChecked(windowed && m_screen->size() == QSize(w * scale, h * scale));
 	}
 }
 
