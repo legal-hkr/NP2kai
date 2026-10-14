@@ -94,6 +94,7 @@ list(APPEND NP2kai_OpenDingux_include_dirs ${NP2kai_SDL_include_dirs} "${NP2kai_
 list(APPEND NP2kai_X_include_dirs "${NP2kai_SOURCE_DIR}/x")
 
 list(APPEND NP2kai_WX_include_dirs "${NP2kai_SOURCE_DIR}/wx")
+list(APPEND NP2kai_QT_include_dirs "${NP2kai_SOURCE_DIR}/qt" "${NP2kai_SOURCE_DIR}/wx")
 
 list(APPEND NP2kai_Windows_include_dirs "${NP2kai_SOURCE_DIR}/windows" "${NP2kai_SOURCE_DIR}/windows/misc")
 
@@ -336,6 +337,38 @@ list(APPEND NP2kai_WX_sources
 	"${CMAKE_CURRENT_SOURCE_DIR}/wx/trace.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/np2_thread.c"
 )
+# The Qt port: its own GUI in qt/, plus the toolkit-independent files of wx/
+list(APPEND NP2kai_QT_sources
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/main.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/mainwindow.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/screenwidget.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/pointercapture.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtkbtrans.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtmsgbox.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/embed/vramhdl.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/embed/vrammix.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/np2.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/np2mt.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/ini.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/dosio.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/scrnmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/soundmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/kbdmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/mousemng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/joymng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/inputmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/sysmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/taskmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/fontmng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/commng.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/cmmidi.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/cmserial.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/codecnv/textcnv.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/sound/opl3.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/sound/opna.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/wx/trace.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/np2_thread.c"
+)
 
 # NP2kai definitions
 list(APPEND NP2kai_common_definitions "BIOS_IO_EMULATION" "OSLANG_UTF8" "SUPPORT_8BPP" "SUPPORT_16BPP" "SUPPORT_24BPP" "SUPPORT_32BPP" "SUPPORT_CL_GD5430" "SUPPORT_CRT15KHZ" "SUPPORT_FAST_MEMORYCHECK" "SUPPORT_FMGEN" "SUPPORT_GPIB" "SUPPORT_HRTIMER" "SUPPORT_KAI_IMAGES" "SUPPORT_LARGE_HDD" "SUPPORT_NORMALDISP" "SUPPORT_PC9861K" "SUPPORT_PX" "SUPPORT_RESUME" "SUPPORT_RS232C_FIFO" "SUPPORT_S98" "SUPPORT_EMU_SOUNDBIOS" "SUPPORT_SCSI" "SUPPORT_HOSTDRV" "SUPPORT_FDDSNDDEV" "SUPPORT_SMPU98" "SUPPORT_SOFTKBD=0" "SUPPORT_SOUND_SB16" "SUPPORT_STATSAVE=10" "SUPPORT_UTF8" "SUPPORT_V30EXT" "SUPPORT_V30ORIGINAL" "SUPPORT_VIDEOFILTER" "SUPPORT_VPCVHD" "SUPPORT_WAB" "USE_MAME" "USE_MAME_BSD" "VAEG_FIX" "VERMOUTH_LIB" "SUPPORT_PNG")
@@ -375,6 +408,7 @@ option(USE_VST3SDK "Use VST3SDK" OFF)
 if(EMSCRIPTEN)
 	set(BUILD_SDL ON)
 	set(BUILD_WX OFF)
+	set(BUILD_QT OFF)
 	set(BUILD_X OFF)
 	set(BUILD_WINDOWS OFF)
 	set(USE_SDL "2" CACHE STRING "SDL version" FORCE)
@@ -382,10 +416,12 @@ elseif(MSVC)
 	set(BUILD_WINDOWS ON)
 	set(BUILD_SDL OFF)
 	set(BUILD_WX OFF)
+	set(BUILD_QT OFF)
 	set(BUILD_X OFF)
 	option(BUILD_DLL "Build as DLL" ON)
 else()
 	option(BUILD_WX "Build wxWidgets port" ON)
+	option(BUILD_QT "Build Qt6 port" OFF)
 	option(BUILD_SDL "Build SDL port" ON)
 	option(BUILD_X "Build X port" OFF)
 	set(BUILD_WINDOWS OFF)
@@ -591,7 +627,15 @@ if(NOT CMAKE_CROSSCOMPILING)
 		else()
 			message(FATAL_ERROR "-- Not found: wxWidgets")
 		endif()
+	endif()
 
+	# Qt6 (the Qt port reuses the toolkit-independent sources of wx/)
+	if(BUILD_QT)
+		find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets)
+		message("-- Found: Qt6 (" ${Qt6_VERSION} ")")
+	endif()
+
+	if(BUILD_WX OR BUILD_QT)
 		# toml++ (tomlplusplus)
 		find_package(tomlplusplus QUIET)
 		if(tomlplusplus_FOUND)
@@ -924,6 +968,16 @@ else()
 		target_include_directories(NP2kai_WX_base BEFORE INTERFACE ${wxWidgets_INCLUDE_DIRS})
 		target_include_directories(NP2kai_WX_base INTERFACE ${NP2kai_WX_include_dirs} ${lib_tomlplusplus_include_dirs} ${LIBCDIO_INCLUDE_DIRS})
 		target_link_libraries(NP2kai_WX_base INTERFACE ${lib_math_libraries} ${wxWidgets_LIBRARIES} ${lib_tomlplusplus_libraries} SDL3::SDL3 SDL3_ttf::SDL3_ttf ${LIBCDIO_LINK_LIBRARIES} ${lib_dl_libraries})
+	endif()
+
+	if(BUILD_QT)
+		add_library(NP2kai_QT_base INTERFACE)
+		target_sources(NP2kai_QT_base INTERFACE ${NP2kai_QT_sources} ${NP2kai_TickCount_sources} ${NP2kai_Network_sources})
+		# Same feature set as the wx port, whose toolkit-independent files it builds
+		target_compile_definitions(NP2kai_QT_base INTERFACE ${NP2kai_WX_definitions} ${NP2kai_extra_definitions} ${NP2kai_TickCount_definitions} ${NP2kai_Network_definitions} ${libcdio_definitions} "QT_NO_KEYWORDS" "QT_DISABLE_DEPRECATED_UP_TO=0x060500")
+		# qt/ before wx/: qt/compiler.h replaces wx/compiler.h, every other header comes from wx/
+		target_include_directories(NP2kai_QT_base INTERFACE ${NP2kai_QT_include_dirs} ${lib_tomlplusplus_include_dirs} ${LIBCDIO_INCLUDE_DIRS})
+		target_link_libraries(NP2kai_QT_base INTERFACE ${lib_math_libraries} Qt6::Widgets ${lib_tomlplusplus_libraries} SDL3::SDL3 SDL3_ttf::SDL3_ttf ${LIBCDIO_LINK_LIBRARIES} ${lib_dl_libraries})
 	endif()
 
 	if(MSVC_VERSION)
@@ -1403,7 +1457,20 @@ else()
 		endif()
 	endif()
 
-	if((UNIX OR MINGW OR MSYS OR CYGWIN OR CMAKE_HOST_APPLE) AND NOT BUILD_SDL AND NOT BUILD_X AND NOT BUILD_WX)
+	if(BUILD_QT)
+		add_executable(qtnp2kai)
+		target_link_libraries(qtnp2kai NP2kai_base NP2kai_QT_base)
+		add_executable(qtnp21kai)
+		target_link_libraries(qtnp21kai NP21kai_base NP2kai_QT_base)
+		set_target_properties(qtnp2kai qtnp21kai PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON)
+		if(NOT BUILD_I286)
+			set_target_properties(qtnp2kai PROPERTIES EXCLUDE_FROM_ALL true)
+		else()
+			set_target_properties(qtnp21kai PROPERTIES EXCLUDE_FROM_ALL true)
+		endif()
+	endif()
+
+	if((UNIX OR MINGW OR MSYS OR CYGWIN OR CMAKE_HOST_APPLE) AND NOT BUILD_SDL AND NOT BUILD_X AND NOT BUILD_WX AND NOT BUILD_QT)
 		message(FATAL_ERROR "Nothing build target.")
 	endif()
 

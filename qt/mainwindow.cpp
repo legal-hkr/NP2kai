@@ -1,0 +1,422 @@
+/* === main window for the Qt port ===
+ * Mirrors Np2Frame (wx/np2frame.cpp): owns the emulation timer or thread,
+ * the menus and the hooks the shared wx code calls (wx/np2ui.h).
+ */
+
+#include <compiler.h>
+#include "mainwindow.h"
+#include "screenwidget.h"
+#include "pointercapture.h"
+#include "np2ui.h"
+#include "np2mt.h"
+#include "np2.h"
+#include "scrnmng.h"
+#include "soundmng.h"
+#include <pccore.h>
+#include <keystat.h>
+#include <sysmng.h>
+#include <dosio.h>
+#include <diskimage/fddfile.h>
+#include <fdd/diskdrv.h>
+#include <fdd/sxsi.h>
+#include <io/iocore.h>
+#include <wab/wab.h>
+
+#include <QAction>
+#include <QCloseEvent>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QMenuBar>
+#include <QMessageBox>
+
+#include <atomic>
+
+static MainWindow *s_window = nullptr;
+
+/* scrnmng_update() runs once per emulated frame on the emulator thread;
+ * one queued repaint at a time is enough. */
+static std::atomic<bool> s_redrawPending{false};
+
+/* ---- hooks for the shared wx code (wx/np2ui.h) ---- */
+
+extern "C" void np2frame_requestRedraw(void)
+{
+	if (s_window && !s_redrawPending.exchange(true)) {
+		QMetaObject::invokeMethod(s_window, &MainWindow::refreshScreen, Qt::QueuedConnection);
+	}
+}
+
+extern "C" void np2frame_updateCaption(UINT8 flag)
+{
+	if (s_window) {
+		const int f = flag;
+		QMetaObject::invokeMethod(s_window, [f]() {
+			if (s_window) {
+				s_window->updateCaption(f);
+			}
+		}, Qt::QueuedConnection);
+	}
+}
+
+extern "C" void np2frame_setTitle(const char *title)
+{
+	if (s_window) {
+		const QString t = QString::fromUtf8(title);
+		QMetaObject::invokeMethod(s_window, [t]() {
+			if (s_window) {
+				s_window->setWindowTitle(t);
+			}
+		}, Qt::QueuedConnection);
+	}
+}
+
+/* ---- window ---- */
+
+MainWindow::MainWindow()
+	: m_screen(new ScreenWidget(this))
+	, m_running(true)
+	, m_actStartPause(nullptr)
+	, m_actFullScreen(nullptr)
+	, m_cdMenu(nullptr)
+{
+	s_window = this;
+	setCentralWidget(m_screen);
+	buildMenus();
+
+	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
+	connect(m_screen, &ScreenWidget::menuBarToggleRequested, this, &MainWindow::toggleMenuBar);
+	connect(&m_emuTimer, &QTimer::timeout, this, &MainWindow::onEmuTimer);
+
+	/* Always initialised: it also sets up the nevent mutex */
+	np2_multithread_initialize();
+	if (np2wabcfg.multithread) {
+		/* The emulator has its own thread; the timer only refreshes the UI */
+		np2_multithread_start();
+		m_emuTimer.start(50);
+	} else {
+		m_emuTimer.start(1);
+	}
+
+	m_screen->setFocus();
+}
+
+MainWindow::~MainWindow()
+{
+	np2_multithread_shutdown();
+	s_window = nullptr;
+}
+
+void MainWindow::onEmuTimer()
+{
+	if (np2wabcfg.multithread) {
+		updateMenuStatus();
+	} else if (m_running) {
+		np2_exec();
+	}
+}
+
+void MainWindow::stopEmulation()
+{
+	soundmng_stop();
+	np2_multithread_suspend();
+}
+
+void MainWindow::startEmulation()
+{
+	if (!m_running) {
+		return;
+	}
+	np2_multithread_resume();
+	soundmng_play();
+}
+
+void MainWindow::refreshScreen()
+{
+	s_redrawPending = false;
+	m_screen->updateFrame();
+}
+
+void MainWindow::updateCaption(int flag)
+{
+	sysmng_updatecaption(static_cast<UINT8>(flag));
+	updateMenuStatus();
+}
+
+/* ---- menus ---- */
+
+/* No menu shortcuts: every key, F5 and Ctrl+V included, belongs to the PC-98
+ * while the screen has focus. Alt+Enter, F11 and F12 are handled by the
+ * screen widget according to the F11KEY/F12KEY settings. */
+void MainWindow::buildMenus()
+{
+	QMenu *emu = menuBar()->addMenu(tr("&Emulate"));
+	m_actStartPause = emu->addAction(tr("&Pause"), this, &MainWindow::startPause);
+	emu->addAction(tr("&Reset"), this, &MainWindow::reset);
+	emu->addSeparator();
+	emu->addAction(tr("E&xit"), this, &QWidget::close);
+
+	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
+	for (int drv = 0; drv < 4; drv++) {
+		m_fdMenu[drv] = fdd->addMenu(tr("FD &%1").arg(drv + 1));
+		m_fdMenu[drv]->addAction(tr("&Open/Change Image..."), this, [this, drv]() { openFd(drv); });
+		m_fdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectFd(drv); });
+	}
+
+	QMenu *hdd = menuBar()->addMenu(tr("&HDD"));
+	for (int drv = 0; drv < 4; drv++) {
+		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
+		m_hdMenu[drv]->addAction(tr("&Open/Change Image..."), this, [this, drv]() { openHd(drv); });
+		m_hdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectHd(drv); });
+	}
+
+	QMenu *cd = menuBar()->addMenu(tr("&CD"));
+	m_cdMenu = cd->addMenu(tr("&CD-ROM"));
+	m_cdMenu->addAction(tr("&Open/Mount Image..."), this, &MainWindow::openCd);
+	m_cdMenu->addAction(tr("&Eject"), this, &MainWindow::ejectCd);
+
+	QMenu *disp = menuBar()->addMenu(tr("&Display"));
+	m_actFullScreen = disp->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
+	m_actFullScreen->setCheckable(true);
+
+	QMenu *input = menuBar()->addMenu(tr("&Input"));
+	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel);
+
+	/* Menus take keyboard focus; give it back to the screen afterwards */
+	for (QAction *a : menuBar()->actions()) {
+		if (QMenu *m = a->menu()) {
+			connect(m, &QMenu::aboutToHide, m_screen, [this]() { m_screen->setFocus(); });
+		}
+	}
+
+	updateMenuStatus();
+}
+
+static QString withFileName(const QString &label, const OEMCHAR *path)
+{
+	if (!path || !path[0]) {
+		return label;
+	}
+	return label + QStringLiteral(": ") + QString::fromUtf8(file_getname(const_cast<OEMCHAR *>(path)));
+}
+
+void MainWindow::updateMenuStatus()
+{
+	for (int i = 0; i < 4; i++) {
+		m_fdMenu[i]->setTitle(withFileName(tr("FD &%1").arg(i + 1), np2cfg.fddfile[i]));
+		m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), diskdrv_getsxsi(static_cast<REG8>(i))));
+	}
+	const int cd = findCdromDrive();
+	m_cdMenu->setTitle(withFileName(tr("&CD-ROM"),
+	                   cd >= 0 ? sxsi_getfilename(static_cast<REG8>(cd)) : nullptr));
+	m_actFullScreen->setChecked(isFullScreen());
+}
+
+/* ---- Emulate ---- */
+
+void MainWindow::startPause()
+{
+	m_running = !m_running;
+	if (m_running) {
+		np2_multithread_resume();
+		soundmng_play();
+		m_actStartPause->setText(tr("&Pause"));
+	} else {
+		soundmng_stop();
+		np2_multithread_suspend();
+		m_actStartPause->setText(tr("&Start"));
+	}
+}
+
+void MainWindow::reset()
+{
+	pccore_reset();
+	soundmng_reset();
+}
+
+/* ---- drives ---- */
+
+static QString startDir(const char *folder, const OEMCHAR *current)
+{
+	if (current && current[0]) {
+		return QFileInfo(QString::fromUtf8(current)).absolutePath();
+	}
+	return QString::fromUtf8(folder);
+}
+
+static void storePath(char *dst, const QString &path)
+{
+	milstr_ncpy(dst, QFile::encodeName(path).constData(), MAX_PATH);
+}
+
+void MainWindow::openFd(int drv)
+{
+	const QString path = QFileDialog::getOpenFileName(this,
+	    tr("Open FD%1 Image").arg(drv + 1),
+	    startDir(fddfolder, np2cfg.fddfile[drv]),
+	    tr("FD images (*.d88 *.88d *.d98 *.98d *.fdi *.hdm *.xdf *.dup *.2hd *.nfd *.dcp *.dcu *.flp *.vfdd);;All files (*)"));
+	if (path.isEmpty()) {
+		return;
+	}
+	stopEmulation();
+	np2cfg.fddequip |= static_cast<UINT8>(1 << drv);
+	fdc.equip       |= static_cast<UINT8>(1 << drv);
+	/* Mounted at once, as at startup, not after the usual delay */
+	diskdrv_readyfdd(static_cast<REG8>(drv), QFile::encodeName(path).constData(), 0);
+	storePath(np2cfg.fddfile[drv], path);
+	storePath(fddfolder, QFileInfo(path).absolutePath());
+	sysmng_update(SYS_UPDATEFDD | SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+void MainWindow::ejectFd(int drv)
+{
+	stopEmulation();
+	np2cfg.fddfile[drv][0] = '\0';
+	fdd_eject(static_cast<REG8>(drv));
+	sysmng_update(SYS_UPDATEFDD | SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+void MainWindow::openHd(int drv)
+{
+	const QString path = QFileDialog::getOpenFileName(this,
+	    tr("Open HD%1 Image").arg(drv + 1),
+	    startDir(hddfolder, np2cfg.sasihdd[drv]),
+	    tr("HD images (*.nhd *.hdi *.thd *.vhd *.hdd *.hdn *.sln);;All files (*)"));
+	if (path.isEmpty()) {
+		return;
+	}
+	stopEmulation();
+	storePath(hddfolder, QFileInfo(path).absolutePath());
+	storePath(np2cfg.sasihdd[drv], path);
+#if defined(SUPPORT_IDEIO)
+	np2cfg.idetype[drv] = SXSIDEV_HDD;
+#endif
+	sysmng_update(SYS_UPDATEHDD | SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+void MainWindow::ejectHd(int drv)
+{
+	stopEmulation();
+	np2cfg.sasihdd[drv][0] = '\0';
+#if defined(SUPPORT_IDEIO)
+	np2cfg.idetype[drv] = SXSIDEV_NC;
+#endif
+	sysmng_update(SYS_UPDATEHDD | SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+void MainWindow::openCd()
+{
+	const int drv = findCdromDrive();
+	if (drv < 0) {
+		QMessageBox::information(this, tr("CD-ROM"), tr("No CD-ROM drive configured."));
+		return;
+	}
+	const OEMCHAR *current = nullptr;
+#if defined(SUPPORT_IDEIO)
+	current = np2cfg.idecd[drv & 0x03];
+#endif
+	const QString path = QFileDialog::getOpenFileName(this, tr("Mount CD Image"),
+	    startDir(cdfolder, current),
+	    tr("CD images (*.iso *.cue *.ccd *.mds *.nrg);;All files (*)"));
+	if (path.isEmpty()) {
+		return;
+	}
+	stopEmulation();
+	storePath(cdfolder, QFileInfo(path).absolutePath());
+	sxsi_devopen(static_cast<REG8>(drv), QFile::encodeName(path).constData());
+#if defined(SUPPORT_IDEIO)
+	storePath(np2cfg.idecd[drv & 0x03], path);
+#endif
+	sysmng_update(SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+void MainWindow::ejectCd()
+{
+	const int drv = findCdromDrive();
+	if (drv < 0) {
+		return;
+	}
+	stopEmulation();
+	sxsi_devopen(static_cast<REG8>(drv), nullptr);
+#if defined(SUPPORT_IDEIO)
+	np2cfg.idecd[drv & 0x03][0] = '\0';
+#endif
+	sysmng_update(SYS_UPDATECFG);
+	updateMenuStatus();
+	startEmulation();
+}
+
+/* ---- display / input ---- */
+
+void MainWindow::toggleFullScreen()
+{
+	if (isFullScreen()) {
+		showNormal();
+		menuBar()->show();
+	} else {
+		showFullScreen();
+	}
+	m_actFullScreen->setChecked(isFullScreen());
+}
+
+void MainWindow::toggleMenuBar()
+{
+	/* Only in full screen, as in the X port; a window keeps its menu */
+	if (isFullScreen()) {
+		menuBar()->setVisible(!menuBar()->isVisible());
+	}
+}
+
+void MainWindow::sendCtrlAltDel()
+{
+	keystat_keydown(0x74);  /* CTRL */
+	keystat_keydown(0x73);  /* GRPH */
+	keystat_keydown(0x39);  /* DEL */
+	keystat_keyup(0x39);
+	keystat_keyup(0x73);
+	keystat_keyup(0x74);
+}
+
+/* ---- window state ---- */
+
+void MainWindow::rememberGeometry()
+{
+	if (isMaximized() || isFullScreen() || !isVisible()) {
+		return;
+	}
+	np2oscfg.winx      = x();
+	np2oscfg.winy      = y();
+	np2oscfg.winwidth  = static_cast<UINT>(m_screen->width());
+	np2oscfg.winheight = static_cast<UINT>(m_screen->height());
+}
+
+void MainWindow::moveEvent(QMoveEvent *event)
+{
+	rememberGeometry();
+	QMainWindow::moveEvent(event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+	rememberGeometry();
+	QMainWindow::resizeEvent(event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+	m_screen->pointerCapture()->release();
+	m_emuTimer.stop();
+	np2_multithread_stop();
+	np2_terminate();   /* saves the configuration */
+	event->accept();
+}
