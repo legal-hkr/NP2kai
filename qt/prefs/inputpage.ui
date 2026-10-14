@@ -260,6 +260,16 @@
         </item>
        </layout>
       </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QCheckBox" name="mouseAccel">
+        <property name="text">
+         <string>Use the host's pointer &amp;acceleration</string>
+        </property>
+        <property name="toolTip">
+         <string>The guest OS, e.g. Windows 95, accelerates the mouse on its own; with both, fast moves go too far. Under X11 the pointer is always accelerated.</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

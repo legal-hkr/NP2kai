@@ -102,6 +102,9 @@ typedef struct {
 	/* Mouse speed as a fraction, as MOUSEMUL/MOUSEDIV in the Windows port */
 	SINT16	mousemul;
 	SINT16	mousediv;
+	/* Mouse moves without the host's acceleration, which the guest OS adds
+	 * on its own (RAWMOUSE in the Windows port) */
+	UINT8	rawmouse;
 } NP2OSCFG;
 
 /* cycle screenshot (defined in np2.cpp) */

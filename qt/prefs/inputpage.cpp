@@ -2,7 +2,8 @@
  * The Input tab of wx/dialog/prefframe.cpp, without drag and drop, which this
  * port does not read; the joypad device moved to the Joypad page under Sound,
  * next to the game port. The mouse speed is the Windows port's MOUSEMUL and
- * MOUSEDIV, offered as fractions of the host pointer's speed.
+ * MOUSEDIV, offered as fractions of the host pointer's speed; RAWMOUSE leaves
+ * the acceleration to the guest OS.
  */
 
 #include <compiler.h>
@@ -13,6 +14,7 @@
 
 #include <pccore.h>
 
+#include <QGuiApplication>
 #include <QSignalBlocker>
 
 static const UINT8 kKeyboards[] = { KEY_KEY106, KEY_KEY101 };
@@ -31,6 +33,12 @@ InputPage::InputPage(QWidget *parent)
 	, m_mouseMoved(false)
 {
 	m_ui->setupUi(this);
+	/* Only the Wayland pointer lock gets both kinds of motion */
+#if defined(NP2_QT_WAYLAND)
+	m_ui->mouseAccel->setEnabled(QGuiApplication::platformName().startsWith(QLatin1String("wayland")));
+#else
+	m_ui->mouseAccel->setEnabled(false);
+#endif
 	connect(m_ui->Mouse_sp, &QSlider::valueChanged, this, [this](int index) {
 		m_mouseMoved = true;
 		showMouseSpeed(index);
@@ -76,6 +84,7 @@ void InputPage::load()
 		m_ui->Mouse_sp->setValue(index);
 	}
 	m_mouseMoved = false;
+	m_ui->mouseAccel->setChecked(np2oscfg.rawmouse == 0);
 	if (m_mousemul * kMouseSpeeds[index].div == m_mousediv * kMouseSpeeds[index].mul) {
 		showMouseSpeed(index);
 	} else {
@@ -97,6 +106,7 @@ void InputPage::save()
 	np2cfg.BTN_RAPID = m_ui->btnRAPID->isChecked() ? 1 : 0;
 	np2cfg.MOUSERAPID = m_ui->MS_RAPID->isChecked() ? 1 : 0;
 
+	np2oscfg.rawmouse = m_ui->mouseAccel->isChecked() ? 0 : 1;
 	if (m_mouseMoved) {
 		np2oscfg.mousemul = kMouseSpeeds[m_ui->Mouse_sp->value()].mul;
 		np2oscfg.mousediv = kMouseSpeeds[m_ui->Mouse_sp->value()].div;

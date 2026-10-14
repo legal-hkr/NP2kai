@@ -2,6 +2,7 @@
 
 #include <compiler.h>
 #include "waylandpointerlock.h"
+#include "np2.h"
 
 #include <QGuiApplication>
 #include <QWindow>
@@ -187,10 +188,15 @@ void WaylandPointerLock::onUnlocked(void *data, zwp_locked_pointer_v1 *locked)
 void WaylandPointerLock::onRelativeMotion(void *data, zwp_relative_pointer_v1 *,
                                           uint32_t, uint32_t,
                                           int32_t dx, int32_t dy,
-                                          int32_t, int32_t)
+                                          int32_t dxUnaccel, int32_t dyUnaccel)
 {
-	/* The accelerated values, so the PC-98 mouse feels like the desktop one,
-	 * as it does under X11 */
+	/* Unaccelerated by default: the guest OS, Windows 95 for one, has its
+	 * own acceleration, and the two would add up. The accelerated values
+	 * feel like the desktop's pointer, as under X11. */
 	auto *self = static_cast<WaylandPointerLock *>(data);
-	Q_EMIT self->moved(QPointF(wl_fixed_to_double(dx), wl_fixed_to_double(dy)));
+	if (np2oscfg.rawmouse) {
+		Q_EMIT self->moved(QPointF(wl_fixed_to_double(dxUnaccel), wl_fixed_to_double(dyUnaccel)));
+	} else {
+		Q_EMIT self->moved(QPointF(wl_fixed_to_double(dx), wl_fixed_to_double(dy)));
+	}
 }
