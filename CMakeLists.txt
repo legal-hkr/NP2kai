@@ -350,6 +350,7 @@ list(APPEND NP2kai_QT_sources
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/newfddialog.ui"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/newhddialog.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/newhddialog.ui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/resources/np2kai.qrc"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/prefs/prefdialog.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/prefs/prefdialog.ui"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/prefs/systempage.cpp"

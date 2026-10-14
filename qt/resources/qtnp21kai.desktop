@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=qtNP21kai IA-32
+GenericName=PC-9821 Emulator IA-32
+GenericName[ja]=PC-9821エミュレータ IA-32
+Comment=Emulator of the NEC PC-9821 series with an IA-32 core, Qt frontend
+Comment[ja]=NEC PC-9821シリーズのエミュレータ（IA-32コア、Qt版）
+Exec=qtnp21kai
+Icon=np2
+Categories=Game;Emulator;
+StartupWMClass=qtnp21kai
+Name[ja]=qtNP21kai IA-32

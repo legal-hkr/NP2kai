@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFile>
+#include <QIcon>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QProxyStyle>
@@ -80,6 +81,15 @@ int main(int argc, char *argv[])
 	QApplication::setStyle(new MenuArrowStyle(QApplication::style()->name()));
 	QApplication::setApplicationName(QStringLiteral(NP2_WX_APPNAME));
 	QApplication::setDesktopFileName(QStringLiteral(NP2_WX_APPNAME));
+	/* The installed icon, as the wx port and the .desktop file use; the copy
+	 * built in covers a binary run from its build directory. Under Wayland
+	 * the compositor takes the icon from the .desktop file named above. */
+	QIcon builtIn;
+	for (int size : { 16, 24, 32, 48, 64, 128, 256 }) {
+		/* Sizes the X11 window icon can be made in; an SVG names none */
+		builtIn.addFile(QStringLiteral(":/np2.svg"), QSize(size, size));
+	}
+	QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("np2"), builtIn));
 
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QStringLiteral("NEC PC-9801 series emulator"));
