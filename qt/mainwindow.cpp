@@ -26,6 +26,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QCloseEvent>
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -289,6 +290,9 @@ static QString startDir(const char *folder, const OEMCHAR *current)
 	return QString::fromUtf8(folder);
 }
 
+/* fdd/sxsi.c: set while a disc swap is pending */
+extern "C" char cdchange_flag;
+
 static void storePath(char *dst, const QString &path)
 {
 	milstr_ncpy(dst, QFile::encodeName(path).constData(), MAX_PATH);
@@ -376,10 +380,17 @@ void MainWindow::openCd()
 	}
 	stopEmulation();
 	storePath(cdfolder, QFileInfo(path).absolutePath());
-	sxsi_devopen(static_cast<REG8>(drv), QFile::encodeName(path).constData());
+	/* With a disc already in, the core ejects it, fails and inserts the new
+	 * one a few seconds later; only a failure without that is a real one. */
+	if (sxsi_devopen(static_cast<REG8>(drv), QFile::encodeName(path).constData()) != SUCCESS
+	    && !cdchange_flag) {
+		QMessageBox::warning(this, tr("CD-ROM"),
+		    tr("Could not open the CD image:\n%1").arg(QDir::toNativeSeparators(path)));
+	} else {
 #if defined(SUPPORT_IDEIO)
-	storePath(np2cfg.idecd[drv & 0x03], path);
+		storePath(np2cfg.idecd[drv & 0x03], path);
 #endif
+	}
 	sysmng_update(SYS_UPDATECFG);
 	updateMenuStatus();
 	startEmulation();
