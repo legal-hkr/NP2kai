@@ -24,12 +24,17 @@ public:
 
 	/* The frame as shown (rotation applied), for screenshots */
 	QImage frame() const;
+	/* The PC-98 screen as the emulator draws it, before rotation */
+	QSize frameSize() const { return m_image.size(); }
 
 	QSize sizeHint() const override;
 
 Q_SIGNALS:
 	void fullScreenToggleRequested();
 	void menuBarToggleRequested();
+	/* The PC-98 changed its resolution, e.g. 640x400 to 640x480; previous is
+	 * invalid for the first frame */
+	void frameSizeChanged(const QSize &previous);
 
 protected:
 	bool event(QEvent *event) override;

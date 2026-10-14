@@ -35,6 +35,7 @@ QSize ScreenWidget::sizeHint() const
 void ScreenWidget::updateFrame()
 {
 	int w, h, bpp;
+	const QSize previous = m_image.size();
 	scrnmng_lockbuf();
 	const UINT8 *src = scrnmng_getpixbuf(&w, &h, &bpp);
 	if (src && w > 0 && h > 0 && (bpp == 16 || bpp == 32)) {
@@ -51,6 +52,9 @@ void ScreenWidget::updateFrame()
 	}
 	scrnmng_unlockbuf();
 	update();
+	if (m_image.size() != previous) {
+		Q_EMIT frameSizeChanged(previous);
+	}
 }
 
 static int rotationDegrees()

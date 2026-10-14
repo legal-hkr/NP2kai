@@ -43,6 +43,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSaveFile>
+#include <QScreen>
 #include <QSlider>
 #include <QStatusBar>
 #include <QStyle>
@@ -113,6 +114,7 @@ MainWindow::MainWindow()
 
 	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
 	connect(m_screen, &ScreenWidget::menuBarToggleRequested, this, &MainWindow::toggleMenuBar);
+	connect(m_screen, &ScreenWidget::frameSizeChanged, this, &MainWindow::fitToFrame);
 	connect(&m_emuTimer, &QTimer::timeout, this, &MainWindow::onEmuTimer);
 
 	/* Always initialised: it also sets up the nevent mutex */
@@ -643,6 +645,33 @@ void MainWindow::sendCtrlAltDel()
 	keystat_keyup(0x39);
 	keystat_keyup(0x73);
 	keystat_keyup(0x74);
+}
+
+/* A new PC-98 resolution keeps the window's scale instead of being squeezed
+ * into the old size; the first frame fits the window to its aspect ratio. Full
+ * screen and a maximised window are left as they are. */
+void MainWindow::fitToFrame(const QSize &previous)
+{
+	if (isFullScreen() || isMaximized() || m_screen->frameSize().isEmpty()) {
+		return;
+	}
+	const bool portrait = (scrnmode & SCRNMODE_ROTATE) != 0;
+	auto shown = [portrait](const QSize &s) { return portrait ? s.transposed() : s; };
+	const QSize now = shown(m_screen->frameSize());
+	const QSize before = previous.isEmpty() ? now : shown(previous);
+
+	double scale = qMin(m_screen->width() / double(before.width()),
+	                    m_screen->height() / double(before.height()));
+	/* Not past the screen, bars and window frame included */
+	const QSize extra = size() - m_screen->size();
+	if (const QScreen *s = QWidget::screen()) {
+		const QSize room = s->availableSize() - extra - (frameGeometry().size() - size());
+		scale = qMin(scale, qMin(room.width() / double(now.width()), room.height() / double(now.height())));
+	}
+	const QSize target(qRound(now.width() * scale), qRound(now.height() * scale));
+	if (target != m_screen->size() && !target.isEmpty()) {
+		resize(target + extra);
+	}
 }
 
 void MainWindow::updateSizeMenu()

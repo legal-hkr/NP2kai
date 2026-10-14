@@ -100,6 +100,7 @@ private:
 	void pasteText();
 	void setRotation(int index);
 	void setScreenScale(int scale);
+	void fitToFrame(const QSize &previous);
 	void updateSizeMenu();
 	void showKeyDisp(bool show);
 
