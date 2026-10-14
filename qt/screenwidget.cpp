@@ -170,6 +170,18 @@ void ScreenWidget::keyReleaseEvent(QKeyEvent *event)
 	event->accept();
 }
 
+/* The menu shortcuts work while the mouse is free; once it is captured, every
+ * key goes to the PC-98. Full screen, F11 and F12 are handled in
+ * handleHotkey(), so they work either way. */
+bool ScreenWidget::event(QEvent *event)
+{
+	if (event->type() == QEvent::ShortcutOverride && m_capture->isCaptured()) {
+		event->accept();
+		return true;
+	}
+	return QWidget::event(event);
+}
+
 /* Tab belongs to the emulated machine, not to focus navigation */
 bool ScreenWidget::focusNextPrevChild(bool)
 {

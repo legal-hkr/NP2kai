@@ -109,6 +109,7 @@ MainWindow::MainWindow()
 	connect(&m_cycleShotTimer, &QTimer::timeout, this, &MainWindow::cycleShot);
 	buildStatusBar();
 	buildMenus();
+	updateLoadState();
 
 	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
 	connect(m_screen, &ScreenWidget::menuBarToggleRequested, this, &MainWindow::toggleMenuBar);
@@ -199,13 +200,21 @@ static QString stateFile(int slot)
 	return QFile::decodeName(file_getcd(name.constData()));
 }
 
-/* No menu shortcuts: every key, F5 and Ctrl+V included, belongs to the PC-98
- * while the screen has focus. Alt+Enter, F11 and F12 are handled by the
- * screen widget according to the F11KEY/F12KEY settings. */
+/* The shortcuts of the wx port, plus Ctrl+Q. The screen widget lets them
+ * through only while the mouse is free, so a captured mouse leaves every key,
+ * F5 and Ctrl+V included, to the PC-98. Alt+Enter, F11 and F12 always work. */
 void MainWindow::buildMenus()
 {
+	/* Added to the window too: a hidden menu bar (full screen) would
+	 * switch its actions' shortcuts off */
+	auto shortcut = [this](QAction *action, const QKeySequence &key) {
+		action->setShortcut(key);
+		addAction(action);
+	};
+
 	QMenu *emu = menuBar()->addMenu(tr("&Emulate"));
 	m_actStartPause = emu->addAction(tr("&Pause"), this, &MainWindow::startPause);
+	shortcut(m_actStartPause, QKeySequence(Qt::Key_F5));
 	emu->addAction(tr("&Reset"), this, &MainWindow::reset);
 
 	QMenu *speed = emu->addMenu(tr("&Emulation Speed"));
@@ -228,17 +237,16 @@ void MainWindow::buildMenus()
 		slotGroup->addAction(m_actSlot[i]);
 	}
 	m_actLoadState = emu->addAction(tr("&Load State"), this, &MainWindow::loadState);
-	emu->addAction(tr("&Save State"), this, &MainWindow::saveState);
+	shortcut(m_actLoadState, QKeySequence(Qt::Key_F7));
+	shortcut(emu->addAction(tr("&Save State"), this, &MainWindow::saveState), QKeySequence(Qt::Key_F8));
 	emu->addSeparator();
 	emu->addAction(tr("New &FD Image..."), this, [this]() { DiskCreator::newFdImage(this); });
 	emu->addAction(tr("New &HD Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 	emu->addSeparator();
-	emu->addAction(tr("Pr&eferences..."), this, &MainWindow::openPreferences);
+	shortcut(emu->addAction(tr("Pr&eferences..."), this, &MainWindow::openPreferences),
+	         QKeySequence(Qt::CTRL | Qt::Key_P));
 	emu->addSeparator();
-	emu->addAction(tr("E&xit"), this, &QWidget::close);
-	connect(emu, &QMenu::aboutToShow, this, [this]() {
-		m_actLoadState->setEnabled(QFile::exists(stateFile(np2_stateslotnow)));
-	});
+	shortcut(emu->addAction(tr("E&xit"), this, &QWidget::close), QKeySequence::Quit);
 
 	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
 	for (int drv = 0; drv < 4; drv++) {
@@ -262,6 +270,8 @@ void MainWindow::buildMenus()
 	QMenu *disp = menuBar()->addMenu(tr("&Display"));
 	m_actFullScreen = disp->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
 	m_actFullScreen->setCheckable(true);
+	m_actFullScreen->setShortcuts({ QKeySequence(Qt::ALT | Qt::Key_Enter), QKeySequence(Qt::ALT | Qt::Key_Return) });
+	addAction(m_actFullScreen);
 	disp->addSeparator();
 
 	/* Menu order and labels as in the wx port */
@@ -296,12 +306,14 @@ void MainWindow::buildMenus()
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
 	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel)
 	    ->setStatusTip(tr("Send hardware reset sequence"));
-	input->addAction(tr("Paste Clipboard Text"), this, &MainWindow::pasteText)
-	    ->setStatusTip(tr("Type the text from the clipboard on the PC-98 keyboard"));
+	QAction *paste = input->addAction(tr("Paste Clipboard Text"), this, &MainWindow::pasteText);
+	paste->setStatusTip(tr("Type the text from the clipboard on the PC-98 keyboard"));
+	shortcut(paste, QKeySequence(Qt::CTRL | Qt::Key_V));
 
 	QMenu *other = menuBar()->addMenu(tr("&Other"));
-	other->addAction(tr("&Copy Screen"), this, &MainWindow::copyScreen)
-	    ->setStatusTip(tr("Copy screen to clipboard"));
+	QAction *copy = other->addAction(tr("&Copy Screen"), this, &MainWindow::copyScreen);
+	copy->setStatusTip(tr("Copy screen to clipboard"));
+	shortcut(copy, QKeySequence(Qt::CTRL | Qt::Key_C));
 	other->addAction(tr("&PNG Save..."), this, &MainWindow::savePng)
 	    ->setStatusTip(tr("Save screen as PNG image"));
 	m_actCycleShot = other->addAction(tr("C&ycle Screenshot..."), this, [this](bool on) {
@@ -816,9 +828,16 @@ void MainWindow::popupSpeed()
 
 /* ---- states ---- */
 
+/* Kept current for F7 too, not only for the menu */
+void MainWindow::updateLoadState()
+{
+	m_actLoadState->setEnabled(QFile::exists(stateFile(np2_stateslotnow)));
+}
+
 void MainWindow::setStateSlot(int slot)
 {
 	np2_stateslotnow = slot;
+	updateLoadState();
 	updateCaption(SYS_UPDATECAPTION_ALL);
 }
 
@@ -836,6 +855,7 @@ void MainWindow::saveState()
 		QMessageBox::warning(this, tr("Save State"),
 		    tr("Could not save the state to\n%1").arg(QDir::toNativeSeparators(stateFile(np2_stateslotnow))));
 	}
+	updateLoadState();
 }
 
 /* As the Windows port: a state saved with other disks in may still be wanted */

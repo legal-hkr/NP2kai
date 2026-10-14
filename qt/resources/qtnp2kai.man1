@@ -23,7 +23,7 @@
 .B @NP2kai_QT_NAME@
 is the Qt 6 frontend of NP2kai, an emulator of the NEC PC-9801 series. It runs under Wayland, where it locks the pointer to the window, and under X11.
 .PP
-Every key of the host keyboard belongs to the PC-98 while the screen has the focus, so the menus have no shortcuts. Floppy, hard disk and CD-ROM images are changed from the menus; new images are made with
+The menu shortcuts work while the mouse is free; once the PC-98 has captured it, every key goes to the PC-98, except Alt+Enter, F11 and F12. Floppy, hard disk and CD-ROM images are changed from the menus; new images are made with
 .B Emulate > New FD Image
 and
 .BR "New HD Image" .

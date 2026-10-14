@@ -91,6 +91,7 @@ private:
 	void toggleSpeed();
 	void popupVolume();
 	void popupSpeed();
+	void updateLoadState();
 	void setStateSlot(int slot);
 	void saveState();
 	void loadState();
