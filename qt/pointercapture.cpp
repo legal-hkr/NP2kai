@@ -3,6 +3,9 @@
 #include <compiler.h>
 #include "pointercapture.h"
 #include "mousemng.h"
+#if defined(NP2_QT_WAYLAND)
+#include "waylandpointerlock.h"
+#endif
 
 #include <QCursor>
 #include <QGuiApplication>
@@ -17,13 +20,22 @@ static const int kWarpWait = 8;
 PointerCapture::PointerCapture(QWidget *target)
 	: QObject(target)
 	, m_target(target)
+	, m_lock(nullptr)
 	, m_mode(Mode::Plain)
 	, m_captured(false)
+	, m_grabbed(false)
 	, m_warpWorks(true)
 	, m_lastValid(false)
 	, m_warpPending(false)
 	, m_warpWait(0)
 {
+#if defined(NP2_QT_WAYLAND)
+	if (WaylandPointerLock::isAvailable()) {
+		m_lock = new WaylandPointerLock(this);
+		connect(m_lock, &WaylandPointerLock::moved, this, &PointerCapture::emitDelta);
+		connect(m_lock, &WaylandPointerLock::lost, this, &PointerCapture::release);
+	}
+#endif
 }
 
 QPointF PointerCapture::centre() const
@@ -36,9 +48,13 @@ void PointerCapture::capture()
 	if (m_captured) {
 		return;
 	}
-	/* Only X11 lets a client move the pointer; Wayland refuses by design. */
-	m_mode = (QGuiApplication::platformName() == QLatin1String("xcb") && m_warpWorks)
-	         ? Mode::Warp : Mode::Plain;
+	/* Only X11 lets a client move the pointer; Wayland refuses by design
+	 * and locks it instead. */
+	if (QGuiApplication::platformName() == QLatin1String("xcb") && m_warpWorks) {
+		m_mode = Mode::Warp;
+	} else {
+		m_mode = Mode::Plain;
+	}
 
 	m_captured = true;
 	m_lastValid = false;   /* the first move sets the starting point */
@@ -47,7 +63,17 @@ void PointerCapture::capture()
 
 	m_target->setMouseTracking(true);
 	m_target->setCursor(Qt::BlankCursor);
-	m_target->grabMouse();
+	/* Wayland grants grabs to popups only (and complains about the rest);
+	 * there the lock keeps the pointer on the window instead. */
+	m_grabbed = !QGuiApplication::platformName().startsWith(QLatin1String("wayland"));
+	if (m_grabbed) {
+		m_target->grabMouse();
+	}
+#if defined(NP2_QT_WAYLAND)
+	if (m_lock && m_lock->lock(m_target->window()->windowHandle())) {
+		m_mode = Mode::Lock;
+	}
+#endif
 	if (m_mode == Mode::Warp) {
 		warpToCentre();
 	}
@@ -61,7 +87,15 @@ void PointerCapture::release()
 		return;
 	}
 	m_captured = false;
-	m_target->releaseMouse();
+#if defined(NP2_QT_WAYLAND)
+	if (m_lock) {
+		m_lock->unlock();
+	}
+#endif
+	if (m_grabbed) {
+		m_target->releaseMouse();
+		m_grabbed = false;
+	}
 	m_target->unsetCursor();
 	m_target->setMouseTracking(false);
 	mousemng_showcursor();
@@ -86,7 +120,8 @@ void PointerCapture::warpToCentre()
 
 void PointerCapture::onMouseMove(const QPointF &pos)
 {
-	if (!m_captured) {
+	/* Locked, the movement comes from the relative pointer alone */
+	if (!m_captured || m_mode == Mode::Lock) {
 		return;
 	}
 	const QPointF c = centre();
@@ -129,6 +164,9 @@ void PointerCapture::onMouseMove(const QPointF &pos)
  * carried over to the next event. */
 void PointerCapture::emitDelta(const QPointF &delta)
 {
+	if (!m_captured) {
+		return;
+	}
 	const QPointF d = delta * m_target->devicePixelRatioF() + m_remainder;
 	const int dx = static_cast<int>(d.x());
 	const int dy = static_cast<int>(d.y());

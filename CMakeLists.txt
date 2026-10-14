@@ -633,6 +633,34 @@ if(NOT CMAKE_CROSSCOMPILING)
 	if(BUILD_QT)
 		find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets)
 		message("-- Found: Qt6 (" ${Qt6_VERSION} ")")
+
+		# Wayland pointer locking: libwayland, the protocol files and Qt's private Gui headers
+		set(USE_WAYLAND "AUTO" CACHE STRING "Lock the pointer under Wayland in the Qt port (AUTO, ON or OFF)")
+		set(NP2kai_QT_wayland OFF)
+		if(USE_WAYLAND STREQUAL "AUTO" OR USE_WAYLAND)
+			if(USE_WAYLAND STREQUAL "AUTO")
+				set(wayland_find QUIET)
+			else()
+				set(wayland_find REQUIRED)
+			endif()
+			pkg_check_modules(WAYLAND_CLIENT ${wayland_find} wayland-client)
+			pkg_check_modules(WAYLAND_PROTOCOLS ${wayland_find} wayland-protocols)
+			find_program(WAYLAND_SCANNER wayland-scanner)
+			# Since Qt 6.10 the private modules are packages of their own
+			if(Qt6_VERSION VERSION_GREATER_EQUAL 6.10)
+				set(QT_NO_PRIVATE_MODULE_WARNING ON)
+				find_package(Qt6 ${wayland_find} COMPONENTS GuiPrivate)
+			endif()
+			if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER AND TARGET Qt6::GuiPrivate)
+				set(NP2kai_QT_wayland ON)
+				pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+				message("-- Found: Wayland pointer locking (wayland-protocols " ${WAYLAND_PROTOCOLS_VERSION} ")")
+			elseif(wayland_find STREQUAL "REQUIRED")
+				message(FATAL_ERROR "-- Not found: wayland-scanner or Qt6 GuiPrivate")
+			else()
+				message("-- Not found: Wayland pointer locking (the pointer stops at the window edge under Wayland)")
+			endif()
+		endif()
 	endif()
 
 	if(BUILD_WX OR BUILD_QT)
@@ -978,6 +1006,32 @@ else()
 		# qt/ before wx/: qt/compiler.h replaces wx/compiler.h, every other header comes from wx/
 		target_include_directories(NP2kai_QT_base INTERFACE ${NP2kai_QT_include_dirs} ${lib_tomlplusplus_include_dirs} ${LIBCDIO_INCLUDE_DIRS})
 		target_link_libraries(NP2kai_QT_base INTERFACE ${lib_math_libraries} Qt6::Widgets ${lib_tomlplusplus_libraries} SDL3::SDL3 SDL3_ttf::SDL3_ttf ${LIBCDIO_LINK_LIBRARIES} ${lib_dl_libraries})
+		if(NP2kai_QT_wayland)
+			# Client code for the two protocols, built apart from the emulator sources and their forced includes
+			set(wayland_gen_dir "${CMAKE_CURRENT_BINARY_DIR}/qt-wayland")
+			file(MAKE_DIRECTORY ${wayland_gen_dir})
+			set(wayland_gen_sources)
+			foreach(protocol "unstable/pointer-constraints/pointer-constraints-unstable-v1" "unstable/relative-pointer/relative-pointer-unstable-v1")
+				get_filename_component(protocol_name ${protocol} NAME)
+				set(protocol_xml "${WAYLAND_PROTOCOLS_DIR}/${protocol}.xml")
+				add_custom_command(
+					OUTPUT "${wayland_gen_dir}/${protocol_name}-client-protocol.h"
+					COMMAND ${WAYLAND_SCANNER} client-header ${protocol_xml} "${wayland_gen_dir}/${protocol_name}-client-protocol.h"
+					DEPENDS ${protocol_xml})
+				add_custom_command(
+					OUTPUT "${wayland_gen_dir}/${protocol_name}-protocol.c"
+					COMMAND ${WAYLAND_SCANNER} private-code ${protocol_xml} "${wayland_gen_dir}/${protocol_name}-protocol.c"
+					DEPENDS ${protocol_xml})
+				list(APPEND wayland_gen_sources "${wayland_gen_dir}/${protocol_name}-client-protocol.h" "${wayland_gen_dir}/${protocol_name}-protocol.c")
+			endforeach()
+			add_library(NP2kai_QT_wayland_protocols STATIC ${wayland_gen_sources})
+			target_include_directories(NP2kai_QT_wayland_protocols PUBLIC ${wayland_gen_dir} ${WAYLAND_CLIENT_INCLUDE_DIRS})
+			target_link_libraries(NP2kai_QT_wayland_protocols PUBLIC ${WAYLAND_CLIENT_LINK_LIBRARIES})
+
+			target_sources(NP2kai_QT_base INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/qt/waylandpointerlock.cpp")
+			target_compile_definitions(NP2kai_QT_base INTERFACE "NP2_QT_WAYLAND")
+			target_link_libraries(NP2kai_QT_base INTERFACE NP2kai_QT_wayland_protocols Qt6::GuiPrivate)
+		endif()
 	endif()
 
 	if(MSVC_VERSION)
