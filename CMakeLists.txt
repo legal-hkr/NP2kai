@@ -345,6 +345,9 @@ list(APPEND NP2kai_QT_sources
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/pointercapture.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtkbtrans.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtmsgbox.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/keydispwindow.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/cycleshotdialog.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/cycleshotdialog.ui"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/diskcreator.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/newfddialog.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/newfddialog.ui"
@@ -1562,6 +1565,22 @@ else()
 		else()
 			set_target_properties(qtnp21kai PROPERTIES EXCLUDE_FROM_ALL true)
 		endif()
+
+		# One English and one Japanese man page for both programs, filled in
+		# with the name of each
+		foreach(NP2kai_QT_BASE np2kai np21kai)
+			set(NP2kai_QT_NAME "qt${NP2kai_QT_BASE}")
+			string(TOUPPER "${NP2kai_QT_NAME}" NP2kai_QT_NAME_UPPER)
+			if(NP2kai_QT_BASE STREQUAL "np21kai")
+				set(NP2kai_QT_SUMMARY "PC-9801 series emulator with IA-32 emulation")
+				set(NP2kai_QT_SUMMARY_JA "IA-32 コアを使用した PC-9801 シリーズエミュレータ")
+			else()
+				set(NP2kai_QT_SUMMARY "PC-9801 series emulator")
+				set(NP2kai_QT_SUMMARY_JA "PC-9801 シリーズエミュレータ")
+			endif()
+			configure_file(qt/resources/qtnp2kai.man1 ${NP2kai_QT_NAME}.1 @ONLY)
+			configure_file(qt/resources/qtnp2kai.jman1 ${NP2kai_QT_NAME}.ja.1 @ONLY)
+		endforeach()
 	endif()
 
 	if((UNIX OR MINGW OR MSYS OR CYGWIN OR CMAKE_HOST_APPLE) AND NOT BUILD_SDL AND NOT BUILD_X AND NOT BUILD_WX AND NOT BUILD_QT)
@@ -1715,6 +1734,22 @@ else()
 				set(GUI_MISC_INSTALL ON)
 			endif()
 		endif()
+	endif()
+
+	# Not limited to configurations as the rules above are, so that a
+	# distribution's own build type installs the Qt port too
+	if(BUILD_QT)
+		include(GNUInstallDirs)
+		foreach(NP2kai_QT_NAME qtnp2kai qtnp21kai)
+			get_target_property(NP2kai_temp ${NP2kai_QT_NAME} EXCLUDE_FROM_ALL)
+			if(NOT NP2kai_temp)
+				install(TARGETS ${NP2kai_QT_NAME})
+				install(FILES ${NP2kai_SOURCE_DIR}/qt/resources/${NP2kai_QT_NAME}.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+				install(FILES ${NP2kai_BINARY_DIR}/${NP2kai_QT_NAME}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+				install(FILES ${NP2kai_BINARY_DIR}/${NP2kai_QT_NAME}.ja.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/ja/man1 RENAME ${NP2kai_QT_NAME}.1)
+			endif()
+		endforeach()
+		install(FILES ${NP2kai_SOURCE_DIR}/misc/np2.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
 	endif()
 
 	if(MSVC)

@@ -25,6 +25,7 @@
 #include <sysmng.h>
 #include <font/font.h>
 #include <io/iocore.h>
+#include <timing.h>
 #include <sound/sound.h>
 #include <sound/beep.h>
 #include <sound/tms3631.h>
@@ -198,6 +199,7 @@ static void copyLiveSettings(NP2CFG &to, const NP2CFG &from)
 	to.skiplight = from.skiplight;
 	to.uPD72020 = from.uPD72020;
 	to.grcg = from.grcg;
+	to.emuspeed = from.emuspeed;
 	to.gdcwovrg = from.gdcwovrg;
 	to.BTN_MODE = from.BTN_MODE;
 	to.BTN_RAPID = from.BTN_RAPID;
@@ -285,6 +287,11 @@ void PrefDialog::accept()
 		}
 	}
 	scrndraw_redraw();
+
+	/* System */
+	if (np2cfg.emuspeed != before.emuspeed) {
+		timing_setspeed(np2cfg.emuspeed * 128 / 100);
+	}
 
 	/* Input */
 	if (std::strcmp(np2oscfg.JOYDEV[0], osBefore.JOYDEV[0]) != 0) {

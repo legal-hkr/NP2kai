@@ -4,13 +4,18 @@
 #include "mainwindow.h"
 #include "np2.h"
 
+#include <pccore.h>
+#include <fdd/diskdrv.h>
+
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFile>
 #include <QIcon>
 #include <QMenuBar>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QProxyStyle>
+#include <QStatusBar>
 #include <QSocketNotifier>
 #include <QStyle>
 #include <QStyleOptionMenuItem>
@@ -98,6 +103,9 @@ int main(int argc, char *argv[])
 	                             QStringLiteral("Configuration file to use."),
 	                             QStringLiteral("file"));
 	parser.addOption(configOpt);
+	parser.addPositionalArgument(QStringLiteral("images"),
+	                             QStringLiteral("Floppy disk images for drives 1 to 4."),
+	                             QStringLiteral("[FD1 [FD2 [FD3 [FD4]]]]"));
 	parser.process(app);
 
 	/* wx/ini.cpp picks the override up from the environment */
@@ -119,6 +127,14 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	/* As the X port: in place of the disks the configuration remembers */
+	const QStringList images = parser.positionalArguments();
+	for (int drv = 0; drv < images.size() && drv < 4; drv++) {
+		const QByteArray path = QFile::encodeName(QFileInfo(images[drv]).absoluteFilePath());
+		milstr_ncpy(np2cfg.fddfile[drv], path.constData(), NELEMENTS(np2cfg.fddfile[drv]));
+		diskdrv_readyfdd(static_cast<REG8>(drv), np2cfg.fddfile[drv], 0);
+	}
+
 	int exitCode;
 	{
 		MainWindow window;
@@ -126,8 +142,9 @@ int main(int argc, char *argv[])
 		int h = static_cast<int>(np2oscfg.winheight);
 		if (w < 320) w = 640;
 		if (h < 200) h = 400;
-		/* winwidth/winheight are the screen area; add the menu bar */
-		window.resize(w, h + window.menuBar()->sizeHint().height());
+		/* winwidth/winheight are the screen area; add the bars */
+		window.resize(w, h + window.menuBar()->sizeHint().height()
+		                   + window.statusBar()->sizeHint().height());
 		if (np2oscfg.winx >= 0 && np2oscfg.winy >= 0) {
 			window.move(np2oscfg.winx, np2oscfg.winy);  /* ignored under Wayland */
 		}

@@ -9,12 +9,18 @@
 #include "pointercapture.h"
 #include "newdisk/diskcreator.h"
 #include "prefs/prefdialog.h"
+#include "keydispwindow.h"
+#include "cycleshotdialog.h"
 #include "np2ui.h"
 #include "np2mt.h"
 #include "np2.h"
 #include "scrnmng.h"
 #include "soundmng.h"
 #include <pccore.h>
+#include <statsave.h>
+#include <timing.h>
+#include <codecnv/codecnv.h>
+#include <font/font.h>
 #include <keystat.h>
 #include <sysmng.h>
 #include <dosio.h>
@@ -26,13 +32,23 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QApplication>
+#include <QClipboard>
 #include <QCloseEvent>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QSaveFile>
+#include <QSlider>
+#include <QStatusBar>
+#include <QStyle>
+#include <QToolButton>
+#include <QVBoxLayout>
+#include <QWidgetAction>
 
 #include <atomic>
 
@@ -79,13 +95,19 @@ extern "C" void np2frame_setTitle(const char *title)
 
 MainWindow::MainWindow()
 	: m_screen(new ScreenWidget(this))
+	, m_keyDisp(nullptr)
 	, m_running(true)
-	, m_actStartPause(nullptr)
-	, m_actFullScreen(nullptr)
-	, m_cdMenu(nullptr)
+	, m_volButton(nullptr)
+	, m_speedButton(nullptr)
+	, m_lastVol(np2cfg.vol_master ? np2cfg.vol_master : 100)
+	, m_lastSpeed(np2cfg.emuspeed != 100 ? np2cfg.emuspeed : 200)
+	, m_shownVol(-1)
+	, m_shownSpeed(0)
 {
 	s_window = this;
 	setCentralWidget(m_screen);
+	connect(&m_cycleShotTimer, &QTimer::timeout, this, &MainWindow::cycleShot);
+	buildStatusBar();
 	buildMenus();
 
 	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
@@ -102,6 +124,13 @@ MainWindow::MainWindow()
 		m_emuTimer.start(1);
 	}
 
+	if (np2oscfg.cycle_shot_enabled) {
+		setCycleShot(true);
+	}
+	if (np2oscfg.keydisp) {
+		/* Once the main window is up, so it opens next to it */
+		QTimer::singleShot(0, this, [this]() { showKeyDisp(true); });
+	}
 	m_screen->setFocus();
 }
 
@@ -149,6 +178,27 @@ void MainWindow::updateCaption(int flag)
 
 /* ---- menus ---- */
 
+/* The speeds of the wx menu and of the System page */
+static const UINT32 kSpeeds[6] = { 50, 100, 200, 400, 800, 1600 };
+
+static QString speedLabel(UINT32 speed)
+{
+	return QStringLiteral("x%1").arg(speed / 100.0);
+}
+
+/* qtnp21kai.s00 to .s09 next to the configuration, as the X and SDL ports name
+ * them; wx's "s0" is also the file the resume state goes to. */
+static QString stateExt(int slot)
+{
+	return QStringLiteral("s%1").arg(slot, 2, 10, QLatin1Char('0'));
+}
+
+static QString stateFile(int slot)
+{
+	const QByteArray name = QByteArrayLiteral(NP2_WX_APPNAME ".") + stateExt(slot).toLatin1();
+	return QFile::decodeName(file_getcd(name.constData()));
+}
+
 /* No menu shortcuts: every key, F5 and Ctrl+V included, belongs to the PC-98
  * while the screen has focus. Alt+Enter, F11 and F12 are handled by the
  * screen widget according to the F11KEY/F12KEY settings. */
@@ -157,6 +207,28 @@ void MainWindow::buildMenus()
 	QMenu *emu = menuBar()->addMenu(tr("&Emulate"));
 	m_actStartPause = emu->addAction(tr("&Pause"), this, &MainWindow::startPause);
 	emu->addAction(tr("&Reset"), this, &MainWindow::reset);
+
+	QMenu *speed = emu->addMenu(tr("&Emulation Speed"));
+	auto *speedGroup = new QActionGroup(this);
+	/* A speed set elsewhere may match none of them */
+	speedGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+	for (int i = 0; i < 6; i++) {
+		const UINT32 value = kSpeeds[i];
+		m_actSpeed[i] = speed->addAction(speedLabel(value), this, [this, value]() { setSpeed(value); });
+		m_actSpeed[i]->setCheckable(true);
+		speedGroup->addAction(m_actSpeed[i]);
+	}
+	emu->addSeparator();
+
+	QMenu *slot = emu->addMenu(tr("State &Slot"));
+	auto *slotGroup = new QActionGroup(this);
+	for (int i = 0; i < 10; i++) {
+		m_actSlot[i] = slot->addAction(tr("Slot &%1").arg(i), this, [this, i]() { setStateSlot(i); });
+		m_actSlot[i]->setCheckable(true);
+		slotGroup->addAction(m_actSlot[i]);
+	}
+	m_actLoadState = emu->addAction(tr("&Load State"), this, &MainWindow::loadState);
+	emu->addAction(tr("&Save State"), this, &MainWindow::saveState);
 	emu->addSeparator();
 	emu->addAction(tr("New &FD Image..."), this, [this]() { DiskCreator::newFdImage(this); });
 	emu->addAction(tr("New &HD Image..."), this, [this]() { DiskCreator::newHdImage(this); });
@@ -164,6 +236,9 @@ void MainWindow::buildMenus()
 	emu->addAction(tr("Pr&eferences..."), this, &MainWindow::openPreferences);
 	emu->addSeparator();
 	emu->addAction(tr("E&xit"), this, &QWidget::close);
+	connect(emu, &QMenu::aboutToShow, this, [this]() {
+		m_actLoadState->setEnabled(QFile::exists(stateFile(np2_stateslotnow)));
+	});
 
 	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
 	for (int drv = 0; drv < 4; drv++) {
@@ -201,15 +276,51 @@ void MainWindow::buildMenus()
 		rotateGroup->addAction(m_actRotate[i]);
 	}
 	disp->addSeparator();
+	m_actKeyDisp = disp->addAction(tr("&Key Display"), this, &MainWindow::showKeyDisp);
+	m_actKeyDisp->setCheckable(true);
+	m_actKeyDisp->setStatusTip(tr("Show the notes the FM and MIDI channels play"));
 
 	QMenu *size = disp->addMenu(tr("&Screen Size"));
 	for (int scale = 1; scale <= 3; scale++) {
-		size->addAction(tr("&x%1 (%2x%3)").arg(scale).arg(640 * scale).arg(400 * scale),
-		                this, [this, scale]() { setScreenScale(scale); });
+		m_actSize[scale - 1] = size->addAction(QString(), this, [this, scale]() { setScreenScale(scale); });
 	}
+	size->addAction(tr("&Full Screen"), this, [this]() {
+		if (!isFullScreen()) {
+			toggleFullScreen();
+		}
+	});
+	/* The PC-98 screen is 640x400, or 640x480 with the window accelerator */
+	connect(size, &QMenu::aboutToShow, this, &MainWindow::updateSizeMenu);
+	updateSizeMenu();
 
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
-	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel);
+	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel)
+	    ->setStatusTip(tr("Send hardware reset sequence"));
+	input->addAction(tr("Paste Clipboard Text"), this, &MainWindow::pasteText)
+	    ->setStatusTip(tr("Type the text from the clipboard on the PC-98 keyboard"));
+
+	QMenu *other = menuBar()->addMenu(tr("&Other"));
+	other->addAction(tr("&Copy Screen"), this, &MainWindow::copyScreen)
+	    ->setStatusTip(tr("Copy screen to clipboard"));
+	other->addAction(tr("&PNG Save..."), this, &MainWindow::savePng)
+	    ->setStatusTip(tr("Save screen as PNG image"));
+	m_actCycleShot = other->addAction(tr("C&ycle Screenshot..."), this, [this](bool on) {
+		if (on) {
+			CycleShotDialog dialog(this);
+			if (dialog.exec() != QDialog::Accepted) {
+				on = false;
+			}
+		}
+		setCycleShot(on);
+	});
+	m_actCycleShot->setCheckable(true);
+	m_actCycleShot->setStatusTip(tr("Periodically save screenshots to a file"));
+	m_actTextHook = other->addAction(tr("&Text ROM Hook"), this, &MainWindow::setTextHook);
+	m_actTextHook->setCheckable(true);
+	m_actTextHook->setStatusTip(tr("Write the text read from the font ROM to %1")
+	    .arg(QStringLiteral(HF_FILENAME)));
+	other->addSeparator();
+	other->addAction(tr("&About..."), this, &MainWindow::about);
 
 	/* Menus take keyboard focus; give it back to the screen afterwards */
 	for (QAction *a : menuBar()->actions()) {
@@ -259,6 +370,13 @@ void MainWindow::updateMenuStatus()
 	                   cd >= 0 ? sxsi_getfilename(static_cast<REG8>(cd)) : nullptr));
 	m_actFullScreen->setChecked(isFullScreen());
 	m_actRotate[rotationIndex()]->setChecked(true);
+	for (int i = 0; i < 6; i++) {
+		m_actSpeed[i]->setChecked(np2cfg.emuspeed == kSpeeds[i]);
+	}
+	m_actSlot[qBound(0, np2_stateslotnow, 9)]->setChecked(true);
+	m_actCycleShot->setChecked(m_cycleShotTimer.isActive());
+	m_actTextHook->setChecked(hf_enable == 1);
+	updateStatusBar();
 }
 
 /* ---- Emulate ---- */
@@ -439,13 +557,15 @@ void MainWindow::ejectCd()
 
 void MainWindow::toggleFullScreen()
 {
-	/* Full screen hides the menu bar, as wx's ShowFullScreen does; F11 can
-	 * bring it back (F11KEY = 1) */
+	/* Full screen hides the bars, as wx's ShowFullScreen does; F11 can bring
+	 * the menu back (F11KEY = 1) */
 	if (isFullScreen()) {
 		showNormal();
 		menuBar()->show();
+		statusBar()->show();
 	} else {
 		menuBar()->hide();
+		statusBar()->hide();
 		showFullScreen();
 	}
 	m_actFullScreen->setChecked(isFullScreen());
@@ -513,6 +633,336 @@ void MainWindow::sendCtrlAltDel()
 	keystat_keyup(0x74);
 }
 
+void MainWindow::updateSizeMenu()
+{
+	int w, h;
+	scrnmng_getsize(&w, &h);
+	if (scrnmode & SCRNMODE_ROTATE) {
+		std::swap(w, h);
+	}
+	for (int scale = 1; scale <= 3; scale++) {
+		m_actSize[scale - 1]->setText(tr("&x%1 (%2x%3)").arg(scale).arg(w * scale).arg(h * scale));
+	}
+}
+
+void MainWindow::showKeyDisp(bool show)
+{
+	if (show) {
+		if (!m_keyDisp) {
+			m_keyDisp = new KeyDispWindow(this);
+			connect(m_keyDisp, &KeyDispWindow::closed, this, [this]() {
+				m_actKeyDisp->setChecked(false);
+				np2oscfg.keydisp = 0;
+				sysmng_update(SYS_UPDATEOSCFG);
+			});
+		}
+		m_keyDisp->show();
+		m_keyDisp->raise();
+	} else if (m_keyDisp) {
+		m_keyDisp->close();
+	}
+	m_actKeyDisp->setChecked(show);
+	np2oscfg.keydisp = show ? 1 : 0;
+	sysmng_update(SYS_UPDATEOSCFG);
+}
+
+/* Typed in by the core's autokey, converted to Shift_JIS as the wx port does */
+void MainWindow::pasteText()
+{
+	const QByteArray text = QApplication::clipboard()->text().toUtf8();
+	if (text.isEmpty()) {
+		return;
+	}
+	const UINT len = codecnv_utf8tosjis(nullptr, 0, text.constData(), static_cast<UINT>(-1));
+	if (len == 0) {
+		return;
+	}
+	QByteArray sjis(static_cast<int>(len) + 1, '\0');
+	codecnv_utf8tosjis(sjis.data(), len + 1, text.constData(), static_cast<UINT>(-1));
+	stopEmulation();
+	autokey_start(sjis.constData());
+	startEmulation();
+}
+
+/* ---- status bar ---- */
+
+void MainWindow::buildStatusBar()
+{
+	auto makeButton = [this]() {
+		auto *button = new QToolButton(this);
+		button->setAutoRaise(true);
+		button->setFocusPolicy(Qt::NoFocus);
+		button->setContextMenuPolicy(Qt::CustomContextMenu);
+		statusBar()->addPermanentWidget(button);
+		return button;
+	};
+	m_volButton = makeButton();
+	connect(m_volButton, &QToolButton::clicked, this, &MainWindow::toggleMute);
+	connect(m_volButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupVolume);
+	m_speedButton = makeButton();
+	m_speedButton->setIcon(QIcon::fromTheme(QStringLiteral("media-seek-forward"),
+	                                        style()->standardIcon(QStyle::SP_MediaSeekForward)));
+	connect(m_speedButton, &QToolButton::clicked, this, &MainWindow::toggleSpeed);
+	connect(m_speedButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupSpeed);
+}
+
+void MainWindow::updateStatusBar()
+{
+	/* Called from the 50 ms UI timer too; the icon lookup is not free */
+	if (!m_volButton || (m_shownVol == np2cfg.vol_master && m_shownSpeed == np2cfg.emuspeed)) {
+		return;
+	}
+	m_shownVol = np2cfg.vol_master;
+	m_shownSpeed = np2cfg.emuspeed;
+	const bool muted = (np2cfg.vol_master == 0);
+	m_volButton->setIcon(muted
+	    ? QIcon::fromTheme(QStringLiteral("audio-volume-muted"), style()->standardIcon(QStyle::SP_MediaVolumeMuted))
+	    : QIcon::fromTheme(QStringLiteral("audio-volume-high"), style()->standardIcon(QStyle::SP_MediaVolume)));
+	m_volButton->setToolTip(tr("Vol: %1").arg(np2cfg.vol_master));
+	m_speedButton->setToolTip(tr("Speed: %1").arg(speedLabel(np2cfg.emuspeed)));
+}
+
+void MainWindow::setVolume(UINT8 volume)
+{
+	np2cfg.vol_master = volume;
+	PrefDialog::applyVolumes();
+	sysmng_update(SYS_UPDATECFG);
+	updateStatusBar();
+}
+
+/* pccore_reset() is what applies the speed otherwise */
+void MainWindow::setSpeed(UINT32 speed)
+{
+	np2cfg.emuspeed = speed;
+	timing_setspeed(speed * 128 / 100);
+	sysmng_update(SYS_UPDATECFG);
+	updateMenuStatus();
+}
+
+void MainWindow::toggleMute()
+{
+	if (np2cfg.vol_master > 0) {
+		m_lastVol = np2cfg.vol_master;
+		setVolume(0);
+	} else {
+		setVolume(m_lastVol ? m_lastVol : 100);
+	}
+}
+
+void MainWindow::toggleSpeed()
+{
+	if (np2cfg.emuspeed != 100) {
+		m_lastSpeed = np2cfg.emuspeed;
+		setSpeed(100);
+	} else {
+		setSpeed(m_lastSpeed ? m_lastSpeed : 100);
+	}
+}
+
+/* A vertical slider above the button, as wx's popup window */
+static QSlider *popupSlider(QWidget *button, QLabel **label)
+{
+	auto *menu = new QMenu(button);
+	menu->setAttribute(Qt::WA_DeleteOnClose);
+	auto *box = new QWidget(menu);
+	auto *layout = new QVBoxLayout(box);
+	*label = new QLabel(box);
+	(*label)->setAlignment(Qt::AlignCenter);
+	auto *slider = new QSlider(Qt::Vertical, box);
+	slider->setMinimumHeight(150);
+	layout->addWidget(*label);
+	layout->addWidget(slider, 0, Qt::AlignHCenter);
+	auto *action = new QWidgetAction(menu);
+	action->setDefaultWidget(box);
+	menu->addAction(action);
+	QTimer::singleShot(0, menu, [menu, button, slider]() {
+		menu->popup(button->mapToGlobal(QPoint(0, -menu->sizeHint().height())));
+		slider->setFocus();
+	});
+	return slider;
+}
+
+void MainWindow::popupVolume()
+{
+	QLabel *label;
+	QSlider *slider = popupSlider(m_volButton, &label);
+	slider->setRange(0, 100);
+	slider->setValue(np2cfg.vol_master);
+	label->setNum(np2cfg.vol_master);
+	connect(slider, &QSlider::valueChanged, this, [this, label](int value) {
+		label->setNum(value);
+		setVolume(static_cast<UINT8>(value));
+	});
+}
+
+void MainWindow::popupSpeed()
+{
+	QLabel *label;
+	QSlider *slider = popupSlider(m_speedButton, &label);
+	int index = 5;
+	while (index > 0 && kSpeeds[index - 1] >= np2cfg.emuspeed) {
+		index--;
+	}
+	slider->setRange(0, 5);
+	slider->setPageStep(1);
+	slider->setTickPosition(QSlider::TicksBothSides);
+	slider->setValue(index);
+	label->setText(speedLabel(np2cfg.emuspeed));
+	connect(slider, &QSlider::valueChanged, this, [this, label](int value) {
+		label->setText(speedLabel(kSpeeds[value]));
+		setSpeed(kSpeeds[value]);
+	});
+}
+
+/* ---- states ---- */
+
+void MainWindow::setStateSlot(int slot)
+{
+	np2_stateslotnow = slot;
+	updateCaption(SYS_UPDATECAPTION_ALL);
+}
+
+void MainWindow::saveState()
+{
+	const QByteArray ext = stateExt(np2_stateslotnow).toLatin1();
+	stopEmulation();
+	flagsave(ext.constData());
+	const int ret = np2_statsave_flush();
+	if (ret != STATFLAG_SUCCESS) {
+		flagdelete(ext.constData());
+	}
+	startEmulation();
+	if (ret != STATFLAG_SUCCESS) {
+		QMessageBox::warning(this, tr("Save State"),
+		    tr("Could not save the state to\n%1").arg(QDir::toNativeSeparators(stateFile(np2_stateslotnow))));
+	}
+}
+
+/* As the Windows port: a state saved with other disks in may still be wanted */
+void MainWindow::loadState()
+{
+	const QString path = stateFile(np2_stateslotnow);
+	const QByteArray name = QFile::encodeName(path);
+	char info[1024] = "";
+	stopEmulation();
+	const int ret = statsave_check(name.constData(), info, sizeof(info));
+	bool load = true;
+	if (ret & ~STATFLAG_DISKCHG) {
+		QMessageBox::warning(this, tr("Load State"),
+		    tr("%1 is not a state this version can load.").arg(QDir::toNativeSeparators(path)));
+		load = false;
+	} else if (ret & STATFLAG_DISKCHG) {
+		load = QMessageBox::question(this, tr("Load State"),
+		    tr("The state was saved with other disks in:\n\n%1\nLoad it anyway?")
+		        .arg(QString::fromUtf8(info))) == QMessageBox::Yes;
+	}
+	if (load) {
+		statsave_load(name.constData());
+		np2_statsave_flush();
+		sysmng_workclockreset();
+		sysmng_updatecaption(SYS_UPDATECAPTION_FDD);
+	}
+	startEmulation();
+	updateMenuStatus();
+}
+
+/* ---- screenshots ---- */
+
+/* The frame as on screen, the window accelerator's included; scrnsave, which
+ * the wx port saves PNG files with, knows only the PC-98's own VRAM. */
+void MainWindow::copyScreen()
+{
+	const QImage image = m_screen->frame();
+	if (!image.isNull()) {
+		QApplication::clipboard()->setImage(image);
+	}
+}
+
+void MainWindow::savePng()
+{
+	const QImage image = m_screen->frame();
+	if (image.isNull()) {
+		return;
+	}
+	const QString dir = bmpfilefolder[0] ? QFile::decodeName(bmpfilefolder) : QDir::homePath();
+	QString path = QFileDialog::getSaveFileName(this, tr("PNG Save"),
+	    QDir(dir).filePath(QStringLiteral("screen.png")), tr("PNG images (*.png)"));
+	if (path.isEmpty()) {
+		return;
+	}
+	if (QFileInfo(path).suffix().isEmpty()) {
+		path += QStringLiteral(".png");
+	}
+	storePath(bmpfilefolder, QFileInfo(path).absolutePath());
+	sysmng_update(SYS_UPDATEOSCFG);
+	if (!image.save(path, "PNG")) {
+		QMessageBox::warning(this, tr("PNG Save"),
+		    tr("Could not save\n%1").arg(QDir::toNativeSeparators(path)));
+	}
+}
+
+void MainWindow::setCycleShot(bool on)
+{
+	if (on && cycle_shot_path[0] && cycle_shot_interval >= 1000) {
+		m_cycleShotTimer.start(static_cast<int>(cycle_shot_interval));
+	} else {
+		m_cycleShotTimer.stop();
+	}
+	np2oscfg.cycle_shot_enabled = m_cycleShotTimer.isActive() ? 1 : 0;
+	sysmng_update(SYS_UPDATEOSCFG);
+	updateMenuStatus();
+}
+
+/* Replaced in one go, so whatever reads the file never sees half of it */
+void MainWindow::cycleShot()
+{
+	const QImage image = m_screen->frame();
+	if (image.isNull()) {
+		return;
+	}
+	QSaveFile file(QFile::decodeName(cycle_shot_path));
+	if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "PNG") || !file.commit()) {
+		setCycleShot(false);
+		statusBar()->showMessage(tr("Cycle screenshot stopped: could not write %1")
+		    .arg(QDir::toNativeSeparators(file.fileName())));
+	}
+}
+
+void MainWindow::setTextHook(bool on)
+{
+	stopEmulation();
+	hf_enable = on ? 1 : 0;
+	if (on) {
+		hook_fontrom_defenable();   /* clears hf_enable if the file fails */
+	} else {
+		hook_fontrom_defdisable();
+	}
+	startEmulation();
+	if (on && hf_enable != 1) {
+		QMessageBox::warning(this, tr("Text ROM Hook"),
+		    tr("Could not create %1").arg(QDir::toNativeSeparators(QFile::decodeName(file_getcd(HF_FILENAME)))));
+	}
+	updateMenuStatus();
+}
+
+void MainWindow::about()
+{
+	extern const OEMCHAR np2version[];
+	QMessageBox box(this);
+	box.setWindowTitle(tr("About %1").arg(QStringLiteral(NP2_WX_APPNAME)));
+	box.setIconPixmap(windowIcon().pixmap(64));
+	box.setTextFormat(Qt::RichText);
+	box.setTextInteractionFlags(Qt::TextBrowserInteraction);
+	box.setText(tr("<h3>%1</h3><p>%2 (Qt %3)</p><p>PC-9801 series emulator, the Qt frontend of NP2kai.</p>"
+	               "<p>Neko Project II by Yui, ported to UNIX by NONAKA Kimihiro; "
+	               "NP2kai by AZO234; NP21/W by SimK.</p>"
+	               "<p><a href=\"https://github.com/AZO234/NP2kai\">github.com/AZO234/NP2kai</a></p>")
+	            .arg(QStringLiteral(NP2_WX_APPNAME), QString::fromUtf8(np2version), QString::fromLatin1(qVersion())));
+	stopEmulation();
+	box.exec();
+	startEmulation();
+}
+
 /* ---- window state ---- */
 
 void MainWindow::rememberGeometry()
@@ -540,9 +990,16 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+	if (m_keyDisp) {
+		/* Qt would close it after us and save it as switched off */
+		disconnect(m_keyDisp, nullptr, this, nullptr);
+		m_keyDisp->close();
+	}
 	m_screen->pointerCapture()->release();
 	m_emuTimer.stop();
+	m_cycleShotTimer.stop();
 	np2_multithread_stop();
+	hook_fontrom_defdisable();
 	np2_terminate();   /* saves the configuration */
 	event->accept();
 }

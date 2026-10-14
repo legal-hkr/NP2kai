@@ -488,6 +488,10 @@ static const INITBL np2_tbl[] = {
 #endif
 	{"jast_snd",  INITYPE_BOOL,   &np2oscfg.jastsnd,   0},
 	{"CycleInt",  INITYPE_UINT32, &cycle_shot_interval,     0},
+	{"CyclePath", INITYPE_STR,    cycle_shot_path,     sizeof(cycle_shot_path)},
+	{"CycleEn",   INITYPE_BOOL,   &np2oscfg.cycle_shot_enabled, 0},
+	{"bmap_Dir",  INITYPE_STR,    bmpfilefolder,       MAX_PATH},
+	{"keydispl",  INITYPE_BOOL,   &np2oscfg.keydisp,   0},
 };
 
 static const UINT np2_tbl_count = (UINT)(sizeof(np2_tbl) / sizeof(np2_tbl[0]));
