@@ -11,6 +11,12 @@
 #include "fddpage.h"
 #include "hddpage.h"
 #include "miscpage.h"
+#include "midipage.h"
+#include "serialpage.h"
+#include "networkpage.h"
+#include "hostdrvpage.h"
+#include "dipswpage.h"
+#include "calendarpage.h"
 #include "np2.h"
 #include "joymng.h"
 #include "scrnmng.h"
@@ -39,7 +45,10 @@
 #include <wab/wab.h>
 #endif
 
+#include <QGuiApplication>
 #include <QMessageBox>
+#include <QScreen>
+#include <QScrollArea>
 #include <QPushButton>
 
 #include <cstring>
@@ -60,10 +69,39 @@ PrefDialog::PrefDialog(QWidget *parent)
 #if defined(SUPPORT_IDEIO)
 	addPage(new HddPage, tr("HDD"));
 #endif
+	addPage(new MidiPage, tr("MIDI"));
+	addPage(new SerialPage, tr("Serial"));
+#if defined(SUPPORT_NET) || defined(SUPPORT_LGY98)
+	addPage(new NetworkPage, tr("Network"));
+#endif
+#if defined(SUPPORT_HOSTDRV)
+	addPage(new HostdrvPage, tr("Host Drive"));
+#endif
+	addPage(new DipswPage, tr("DIP Switches"));
+	addPage(new CalendarPage, tr("Calendar"));
 	addPage(new MiscPage, tr("Misc"));
 
+	/* The list as wide as its longest name */
+	m_ui->pageList->setFixedWidth(m_ui->pageList->sizeHintForColumn(0)
+	                              + 2 * m_ui->pageList->frameWidth() + 16);
+	m_ui->pageList->setCurrentRow(0);
+
+	/* Every page fits without scrolling where the screen allows it; on a
+	 * small one the pages scroll instead of the dialog growing past it. */
+	QSize full(0, 0);
+	for (PrefPage *page : std::as_const(m_pages)) {
+		full = full.expandedTo(page->sizeHint());
+	}
+	m_ui->pages->setMinimumSize(0, 0);
+	const QSize chrome = sizeHint() - m_ui->pages->sizeHint();
+	QSize wanted = chrome + full + QSize(4, 4);
+	if (const QScreen *screen = parent ? parent->screen() : QGuiApplication::primaryScreen()) {
+		wanted = wanted.boundedTo(screen->availableSize() * 9 / 10);
+	}
+	resize(wanted);
+
 	QPushButton *defaults = m_ui->buttons->button(QDialogButtonBox::RestoreDefaults);
-	defaults->setToolTip(tr("Puts the default settings on this tab"));
+	defaults->setToolTip(tr("Puts the default settings on this page"));
 	connect(defaults, &QPushButton::clicked, this, &PrefDialog::restoreDefaults);
 }
 
@@ -73,13 +111,19 @@ void PrefDialog::addPage(PrefPage *page, const QString &title)
 {
 	page->load();
 	m_pages.append(page);
-	m_ui->tabs->addTab(page, title);
+	auto *scroll = new QScrollArea;
+	scroll->setWidget(page);
+	scroll->setWidgetResizable(true);
+	scroll->setFrameShape(QFrame::NoFrame);
+	m_ui->pages->addWidget(scroll);
+	m_ui->pageList->addItem(title);
 }
 
-/* The defaults of the current tab only, shown but not taken until OK */
+/* The defaults of the current page only, shown but not taken until OK */
 void PrefDialog::restoreDefaults()
 {
-	auto *page = static_cast<PrefPage *>(m_ui->tabs->currentWidget());
+	const int index = m_ui->pages->currentIndex();
+	PrefPage *page = (index >= 0 && index < m_pages.size()) ? m_pages[index] : nullptr;
 	if (!page) {
 		return;
 	}
@@ -162,6 +206,30 @@ static void copyLiveSettings(NP2CFG &to, const NP2CFG &from)
 	to.keyrepeat_delay = from.keyrepeat_delay;
 	to.keyrepeat_interval = from.keyrepeat_interval;
 	std::memcpy(to.fontfile, from.fontfile, sizeof(to.fontfile));
+	to.calendar = from.calendar;
+	to.cal_vofs = from.cal_vofs;
+#if defined(SUPPORT_HOSTDRV)
+	/* Read when the guest attaches the drive */
+	to.hdrvenable = from.hdrvenable;
+	to.hdrvacc = from.hdrvacc;
+	std::memcpy(to.hdrvroot, from.hdrvroot, sizeof(to.hdrvroot));
+#endif
+}
+
+/* The MIDI and serial connections are opened when the PC-98 is reset */
+static bool connectionsChanged(const NP2OSCFG &a, const NP2OSCFG &b)
+{
+	bool changed = std::memcmp(&a.mpu, &b.mpu, sizeof(a.mpu)) != 0
+	            || std::memcmp(a.com, b.com, sizeof(a.com)) != 0
+	            || std::memcmp(a.MIDIDEV, b.MIDIDEV, sizeof(a.MIDIDEV)) != 0;
+#if defined(SUPPORT_SMPU98)
+	changed = changed
+	       || std::memcmp(&a.smpuA, &b.smpuA, sizeof(a.smpuA)) != 0
+	       || std::memcmp(&a.smpuB, &b.smpuB, sizeof(a.smpuB)) != 0
+	       || std::memcmp(a.MIDIDEVA, b.MIDIDEVA, sizeof(a.MIDIDEVA)) != 0
+	       || std::memcmp(a.MIDIDEVB, b.MIDIDEVB, sizeof(a.MIDIDEVB)) != 0;
+#endif
+	return changed;
 }
 
 void PrefDialog::accept()
@@ -226,7 +294,8 @@ void PrefDialog::accept()
 
 	NP2CFG resetOnly = before;
 	copyLiveSettings(resetOnly, np2cfg);
-	m_needsReset = (std::memcmp(&resetOnly, &np2cfg, sizeof(NP2CFG)) != 0);
+	m_needsReset = (std::memcmp(&resetOnly, &np2cfg, sizeof(NP2CFG)) != 0)
+	            || connectionsChanged(osBefore, np2oscfg);
 #if defined(SUPPORT_WAB)
 	m_needsRestart = (np2wabcfg.multithread != multithreadBefore);
 #endif

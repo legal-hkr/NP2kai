@@ -7,7 +7,24 @@
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <item>
-    <widget class="QTabWidget" name="tabs"/>
+    <layout class="QHBoxLayout" name="pagesLayout">
+     <item>
+      <widget class="QListWidget" name="pageList">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="pages"/>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttons">
@@ -31,6 +48,12 @@
    <signal>rejected()</signal>
    <receiver>PrefDialog</receiver>
    <slot>reject()</slot>
+  </connection>
+  <connection>
+   <sender>pageList</sender>
+   <signal>currentRowChanged(int)</signal>
+   <receiver>pages</receiver>
+   <slot>setCurrentIndex(int)</slot>
   </connection>
  </connections>
 </ui>

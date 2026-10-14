@@ -20,6 +20,9 @@ public:
 	void load() override;
 	void save() override;
 
+	/* Room for every board tab, which the minimum size does not ask for */
+	QSize sizeHint() const override;
+
 private:
 	std::unique_ptr<Ui::SoundPage> m_ui;
 

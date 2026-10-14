@@ -212,12 +212,19 @@ SoundPage::SoundPage(QWidget *parent)
 	m_ui->soundTabs->removeTab(m_ui->soundTabs->indexOf(m_ui->sndFmgenTab));
 #endif
 
-	/* Every board in sight, rather than behind scroll buttons */
-	m_ui->soundTabs->setUsesScrollButtons(false);
-	m_ui->soundTabs->setMinimumWidth(m_ui->soundTabs->tabBar()->sizeHint().width());
+	/* Wide enough for every board where there is room; scroll buttons on a
+	 * narrow screen */
+	m_ui->soundTabs->tabBar()->setExpanding(false);
 }
 
 SoundPage::~SoundPage() = default;
+
+QSize SoundPage::sizeHint() const
+{
+	const int tabs = m_ui->soundTabs->tabBar()->sizeHint().width();
+	const QMargins m = layout()->contentsMargins();
+	return PrefPage::sizeHint().expandedTo(QSize(tabs + m.left() + m.right() + 8, 0));
+}
 
 /* ---- jumper boards ---- */
 
