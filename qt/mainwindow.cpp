@@ -8,6 +8,7 @@
 #include "screenwidget.h"
 #include "pointercapture.h"
 #include "newdisk/diskcreator.h"
+#include "prefs/prefdialog.h"
 #include "np2ui.h"
 #include "np2mt.h"
 #include "np2.h"
@@ -160,6 +161,8 @@ void MainWindow::buildMenus()
 	emu->addAction(tr("New &FD Image..."), this, [this]() { DiskCreator::newFdImage(this); });
 	emu->addAction(tr("New &HD Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 	emu->addSeparator();
+	emu->addAction(tr("Pr&eferences..."), this, &MainWindow::openPreferences);
+	emu->addSeparator();
 	emu->addAction(tr("E&xit"), this, &QWidget::close);
 
 	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
@@ -278,6 +281,26 @@ void MainWindow::reset()
 {
 	pccore_reset();
 	soundmng_reset();
+}
+
+void MainWindow::openPreferences()
+{
+	stopEmulation();
+	PrefDialog dialog(this);
+	if (dialog.exec() == QDialog::Accepted) {
+		if (dialog.needsReset()
+		    && QMessageBox::question(this, dialog.windowTitle(),
+		           tr("Some of the changes take effect when the PC-98 is reset. Reset it now?"))
+		       == QMessageBox::Yes) {
+			reset();
+		}
+		if (dialog.needsRestart()) {
+			QMessageBox::information(this, dialog.windowTitle(),
+			    tr("The emulation thread setting takes effect the next time the emulator starts."));
+		}
+		m_screen->update();
+	}
+	startEmulation();
 }
 
 /* ---- drives ---- */

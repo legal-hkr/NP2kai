@@ -55,6 +55,7 @@ private:
 
 	void startPause();
 	void reset();
+	void openPreferences();
 	void openFd(int drv);
 	void ejectFd(int drv);
 	void openHd(int drv);
