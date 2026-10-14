@@ -23,6 +23,7 @@
 #include <wab/wab.h>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCloseEvent>
 #include <QFile>
 #include <QFileDialog>
@@ -178,6 +179,26 @@ void MainWindow::buildMenus()
 	QMenu *disp = menuBar()->addMenu(tr("&Display"));
 	m_actFullScreen = disp->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
 	m_actFullScreen->setCheckable(true);
+	disp->addSeparator();
+
+	/* Menu order and labels as in the wx port */
+	QMenu *rotate = disp->addMenu(tr("&Rotate"));
+	auto *rotateGroup = new QActionGroup(this);
+	const QString rotateLabels[4] = {
+		tr("&Normal"), tr("&Left rotated"), tr("&180 rotated"), tr("&Right rotated"),
+	};
+	for (int i = 0; i < 4; i++) {
+		m_actRotate[i] = rotate->addAction(rotateLabels[i], this, [this, i]() { setRotation(i); });
+		m_actRotate[i]->setCheckable(true);
+		rotateGroup->addAction(m_actRotate[i]);
+	}
+	disp->addSeparator();
+
+	QMenu *size = disp->addMenu(tr("&Screen Size"));
+	for (int scale = 1; scale <= 3; scale++) {
+		size->addAction(tr("&x%1 (%2x%3)").arg(scale).arg(640 * scale).arg(400 * scale),
+		                this, [this, scale]() { setScreenScale(scale); });
+	}
 
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
 	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel);
@@ -190,6 +211,25 @@ void MainWindow::buildMenus()
 	}
 
 	updateMenuStatus();
+}
+
+/* Menu position of each rotation, as in the wx port */
+static const UINT8 kRotateModes[4] = {
+	0,
+	SCRNMODE_ROTATELEFT,
+	SCRNMODE_ROTATEDIR,
+	SCRNMODE_ROTATERIGHT,
+};
+
+static int rotationIndex()
+{
+	const UINT8 rot = scrnmode & SCRNMODE_ROTATEMASK;
+	for (int i = 0; i < 4; i++) {
+		if (kRotateModes[i] == rot) {
+			return i;
+		}
+	}
+	return 0;
 }
 
 static QString withFileName(const QString &label, const OEMCHAR *path)
@@ -210,6 +250,7 @@ void MainWindow::updateMenuStatus()
 	m_cdMenu->setTitle(withFileName(tr("&CD-ROM"),
 	                   cd >= 0 ? sxsi_getfilename(static_cast<REG8>(cd)) : nullptr));
 	m_actFullScreen->setChecked(isFullScreen());
+	m_actRotate[rotationIndex()]->setChecked(true);
 }
 
 /* ---- Emulate ---- */
@@ -360,13 +401,17 @@ void MainWindow::ejectCd()
 
 void MainWindow::toggleFullScreen()
 {
+	/* Full screen hides the menu bar, as wx's ShowFullScreen does; F11 can
+	 * bring it back (F11KEY = 1) */
 	if (isFullScreen()) {
 		showNormal();
 		menuBar()->show();
 	} else {
+		menuBar()->hide();
 		showFullScreen();
 	}
 	m_actFullScreen->setChecked(isFullScreen());
+	m_screen->setFocus();
 }
 
 void MainWindow::toggleMenuBar()
@@ -375,6 +420,49 @@ void MainWindow::toggleMenuBar()
 	if (isFullScreen()) {
 		menuBar()->setVisible(!menuBar()->isVisible());
 	}
+}
+
+void MainWindow::setRotation(int index)
+{
+	const UINT8 newmode = static_cast<UINT8>((scrnmode & ~SCRNMODE_ROTATEMASK) | kRotateModes[index]);
+	const bool wasPortrait = (scrnmode & SCRNMODE_ROTATE) != 0;
+	const bool portrait = (newmode & SCRNMODE_ROTATE) != 0;
+
+	/* changescreen() rebuilds the screen buffer, which the emulator thread
+	 * draws into, and restarts the sound behind our back */
+	stopEmulation();
+	changescreen(newmode);
+	if (!m_running) {
+		soundmng_stop();
+	}
+	startEmulation();
+
+	/* Turn the window with the picture, keeping its scale */
+	if (portrait != wasPortrait && !isFullScreen() && !isMaximized()) {
+		const QSize extra = size() - m_screen->size();
+		resize(m_screen->size().transposed() + extra);
+	}
+	m_screen->update();
+	updateMenuStatus();
+}
+
+/* Window size for a whole multiple of the PC-98 screen (logical pixels, so
+ * HiDPI scaling comes on top, as in the wx port) */
+void MainWindow::setScreenScale(int scale)
+{
+	if (isFullScreen()) {
+		toggleFullScreen();
+	} else if (isMaximized()) {
+		showNormal();
+	}
+	int w, h;
+	scrnmng_getsize(&w, &h);
+	QSize target(w * scale, h * scale);
+	if (scrnmode & SCRNMODE_ROTATE) {
+		target.transpose();
+	}
+	const QSize extra = size() - m_screen->size();
+	resize(target + extra);
 }
 
 void MainWindow::sendCtrlAltDel()

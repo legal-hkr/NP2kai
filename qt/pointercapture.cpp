@@ -3,6 +3,8 @@
 #include <compiler.h>
 #include "pointercapture.h"
 #include "mousemng.h"
+#include "scrnmng.h"
+#include "np2.h"
 #if defined(NP2_QT_WAYLAND)
 #include "waylandpointerlock.h"
 #endif
@@ -159,6 +161,18 @@ void PointerCapture::onMouseMove(const QPointF &pos)
 	}
 }
 
+/* Host movement as seen on a rotated screen, turned back into the
+ * orientation of the PC-98 screen, so the mouse follows the hand. */
+static QPointF unrotate(const QPointF &d)
+{
+	switch (scrnmode & SCRNMODE_ROTATEMASK) {
+	case SCRNMODE_ROTATELEFT:  return QPointF(-d.y(), d.x());
+	case SCRNMODE_ROTATEDIR:   return QPointF(-d.x(), -d.y());
+	case SCRNMODE_ROTATERIGHT: return QPointF(d.y(), -d.x());
+	default:                   return d;
+	}
+}
+
 /* Widget coordinates are logical; the PC-98 mouse moves in device pixels, as
  * it did in the wx port, so HiDPI scaling doesn't slow it down. Fractions are
  * carried over to the next event. */
@@ -167,7 +181,7 @@ void PointerCapture::emitDelta(const QPointF &delta)
 	if (!m_captured) {
 		return;
 	}
-	const QPointF d = delta * m_target->devicePixelRatioF() + m_remainder;
+	const QPointF d = unrotate(delta) * m_target->devicePixelRatioF() + m_remainder;
 	const int dx = static_cast<int>(d.x());
 	const int dy = static_cast<int>(d.y());
 	m_remainder = QPointF(d.x() - dx, d.y() - dy);

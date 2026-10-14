@@ -7,6 +7,7 @@
 #include <QTimer>
 
 class QAction;
+class QActionGroup;
 class QMenu;
 class ScreenWidget;
 
@@ -43,6 +44,7 @@ private:
 
 	QAction *m_actStartPause;
 	QAction *m_actFullScreen;
+	QAction *m_actRotate[4];
 	QMenu   *m_fdMenu[4];
 	QMenu   *m_hdMenu[4];
 	QMenu   *m_cdMenu;
@@ -60,6 +62,8 @@ private:
 	void openCd();
 	void ejectCd();
 	void sendCtrlAltDel();
+	void setRotation(int index);
+	void setScreenScale(int scale);
 };
 
 #endif /* NP2_QT_MAINWINDOW_H */
