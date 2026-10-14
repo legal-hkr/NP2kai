@@ -4,6 +4,11 @@
  * Wayland, QKeyEvent::nativeScanCode() is the XKB keycode, i.e. the Linux evdev
  * code plus 8, so the host keyboard layout doesn't matter. The tables follow
  * the SDL port's (sdl/kbtrans.c), which has been tested on real keyboards.
+ *
+ * A 101-key keyboard has US legends, which the PC-98's JIS keys only partly
+ * share: ' is Shift+7 there, : has a key of its own, _ is Shift on the key
+ * a US keyboard lacks. Those keys type what their legend says, pressing or
+ * releasing the PC-98's Shift around them as needed (bios/keytable.res).
  */
 
 #include <compiler.h>
@@ -133,9 +138,31 @@ const KeyMap kCommon[] = {
 	{ KEY_KPENTER,    0x1c },
 };
 
-/* 101-key: the key left of 1 stands in for the yen key */
-const KeyMap k101[] = {
-	{ KEY_GRAVE,      0x0d },  /* Yen | */
+/* 101-key: a US legend as a PC-98 key, with or without Shift */
+struct UsKey {
+	UINT16 evdev;
+	UINT8  plain;          /* the key alone */
+	bool   plainShift;
+	UINT8  shifted;        /* the key with Shift */
+	bool   shiftedShift;
+};
+
+const UsKey kUs[] = {
+	{ KEY_GRAVE,      0x0c, true,  0x1a, true  },  /* ` ~ */
+	{ KEY_2,          0x02, false, 0x1a, false },  /* 2 @ */
+	{ KEY_6,          0x06, false, 0x0c, false },  /* 6 ^ */
+	{ KEY_7,          0x07, false, 0x06, true  },  /* 7 & */
+	{ KEY_8,          0x08, false, 0x27, true  },  /* 8 * */
+	{ KEY_9,          0x09, false, 0x08, true  },  /* 9 ( */
+	{ KEY_0,          0x0a, false, 0x09, true  },  /* 0 ) */
+	{ KEY_MINUS,      0x0b, false, 0x33, true  },  /* - _ */
+	{ KEY_EQUAL,      0x0b, true,  0x26, true  },  /* = + */
+	{ KEY_LEFTBRACE,  0x1b, false, 0x1b, true  },  /* [ { */
+	{ KEY_RIGHTBRACE, 0x28, false, 0x28, true  },  /* ] } */
+	{ KEY_BACKSLASH,  0x0d, false, 0x0d, true  },  /* \ | (yen) */
+	{ KEY_102ND,      0x0d, false, 0x0d, true  },  /* \ | on ISO keyboards */
+	{ KEY_SEMICOLON,  0x26, false, 0x27, false },  /* ; : */
+	{ KEY_APOSTROPHE, 0x07, true,  0x02, true  },  /* ' " */
 };
 
 /* 106-key: the Japanese keys exist and go where they belong */
@@ -155,7 +182,7 @@ const int kMaxEvdev = KEY_MAX + 1;
 
 /* Without evdev codes there is nothing to map from yet. */
 const KeyMap kCommon[] = { { 0, NC } };
-const KeyMap k101[]    = { { 0, NC } };
+const UsKey  kUs[]     = { { 0, NC, false, NC, false } };
 const KeyMap k106[]    = { { 0, NC } };
 const int kMaxEvdev = 1;
 
@@ -164,6 +191,47 @@ const int kMaxEvdev = 1;
 /* PC-98 code sent for each held host key, so the release matches the press
  * even if the keyboard type changes in between. */
 UINT8 s_held[kMaxEvdev];
+
+/* What a US key did to the PC-98's Shift, undone on its release */
+enum : INT8 { SHIFT_KEPT = 0, SHIFT_PRESSED = 1, SHIFT_RELEASED = -1 };
+INT8 s_shiftFix[kMaxEvdev];
+
+/* The host's Shift keys, each of which holds the PC-98's under its own code */
+bool s_leftShift;
+bool s_rightShift;
+
+void releaseHostShift()
+{
+	if (s_leftShift) {
+		keystat_keyup(0x70);
+	}
+	if (s_rightShift) {
+		keystat_keyup(0x7d);
+	}
+}
+
+void pressHostShift()
+{
+	if (s_leftShift) {
+		keystat_keydown(0x70);
+	}
+	if (s_rightShift) {
+		keystat_keydown(0x7d);
+	}
+}
+
+const UsKey *usKey(int evdev)
+{
+	if (np2oscfg.KEYBOARD != KEY_KEY101) {
+		return nullptr;
+	}
+	for (const UsKey &k : kUs) {
+		if (k.evdev == evdev) {
+			return &k;
+		}
+	}
+	return nullptr;
+}
 
 UINT8 lookup(const KeyMap *table, size_t n, int evdev)
 {
@@ -191,7 +259,7 @@ UINT8 evdev_to_pc98(int evdev)
 		return kc;
 	}
 	if (np2oscfg.KEYBOARD == KEY_KEY101) {
-		return lookup(k101, NELEMENTS(k101), evdev);
+		return NC;
 	}
 	return lookup(k106, NELEMENTS(k106), evdev);
 }
@@ -210,12 +278,15 @@ extern "C" {
 void wxkbd_initialize(void)
 {
 	std::memset(s_held, NC, sizeof(s_held));
+	std::memset(s_shiftFix, SHIFT_KEPT, sizeof(s_shiftFix));
+	s_leftShift = false;
+	s_rightShift = false;
 }
 
 void wxkbd_reset(void)
 {
 	keystat_allrelease();
-	std::memset(s_held, NC, sizeof(s_held));
+	wxkbd_initialize();
 }
 
 /* keycode is unused here; rawcode is QKeyEvent::nativeScanCode() */
@@ -225,6 +296,28 @@ void wxkbd_keydown(int keycode, int rawcode)
 	const int evdev = to_evdev(rawcode);
 	if (evdev < 0 || s_held[evdev] != NC) {
 		return;  /* unknown, or autorepeat of a held key */
+	}
+#if defined(__linux__)
+	if (evdev == KEY_LEFTSHIFT) {
+		s_leftShift = true;
+	} else if (evdev == KEY_RIGHTSHIFT) {
+		s_rightShift = true;
+	}
+#endif
+	if (const UsKey *us = usKey(evdev)) {
+		const bool hostShift = s_leftShift || s_rightShift;
+		const UINT8 kc = hostShift ? us->shifted : us->plain;
+		const bool needShift = hostShift ? us->shiftedShift : us->plainShift;
+		if (needShift && !hostShift) {
+			keystat_keydown(0x70);
+			s_shiftFix[evdev] = SHIFT_PRESSED;
+		} else if (!needShift && hostShift) {
+			releaseHostShift();
+			s_shiftFix[evdev] = SHIFT_RELEASED;
+		}
+		s_held[evdev] = kc;
+		keystat_keydown(kc);
+		return;
 	}
 	const UINT8 kc = evdev_to_pc98(evdev);
 	if (kc != NC) {
@@ -237,11 +330,28 @@ void wxkbd_keyup(int keycode, int rawcode)
 {
 	(void)keycode;
 	const int evdev = to_evdev(rawcode);
-	if (evdev < 0 || s_held[evdev] == NC) {
+	if (evdev < 0) {
+		return;
+	}
+#if defined(__linux__)
+	if (evdev == KEY_LEFTSHIFT) {
+		s_leftShift = false;
+	} else if (evdev == KEY_RIGHTSHIFT) {
+		s_rightShift = false;
+	}
+#endif
+	if (s_held[evdev] == NC) {
 		return;
 	}
 	keystat_keyup(s_held[evdev]);
 	s_held[evdev] = NC;
+	/* Shift back to what the host's Shift keys say now */
+	if (s_shiftFix[evdev] == SHIFT_PRESSED && !s_leftShift && !s_rightShift) {
+		keystat_keyup(0x70);
+	} else if (s_shiftFix[evdev] == SHIFT_RELEASED) {
+		pressHostShift();
+	}
+	s_shiftFix[evdev] = SHIFT_KEPT;
 }
 
 } // extern "C"
