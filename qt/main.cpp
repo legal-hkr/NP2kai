@@ -9,7 +9,10 @@
 #include <QFile>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QProxyStyle>
 #include <QSocketNotifier>
+#include <QStyle>
+#include <QStyleOptionMenuItem>
 
 #include <csignal>
 #include <cstdlib>
@@ -48,9 +51,33 @@ static void watchSignals(QWidget *window)
 	sigaction(SIGINT, &sa, nullptr);
 }
 
+/* Breeze leaves no room for the submenu arrow when a submenu is the widest
+ * item, so the arrow covers the end of its title; the FDD, HDD and CD menus
+ * hold nothing else. One line height more fits the arrow in any style. */
+class MenuArrowStyle : public QProxyStyle
+{
+public:
+	/* The same style the application chose, wrapped */
+	explicit MenuArrowStyle(const QString &key) : QProxyStyle(key) {}
+
+	QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
+	                       const QWidget *widget) const override
+	{
+		QSize result = QProxyStyle::sizeFromContents(type, option, size, widget);
+		if (type == CT_MenuItem) {
+			const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
+			if (item && item->menuItemType == QStyleOptionMenuItem::SubMenu) {
+				result.rwidth() += item->fontMetrics.height();
+			}
+		}
+		return result;
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
+	QApplication::setStyle(new MenuArrowStyle(QApplication::style()->name()));
 	QApplication::setApplicationName(QStringLiteral(NP2_WX_APPNAME));
 	QApplication::setDesktopFileName(QStringLiteral(NP2_WX_APPNAME));
 
