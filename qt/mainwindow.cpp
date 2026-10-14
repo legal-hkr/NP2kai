@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "screenwidget.h"
 #include "pointercapture.h"
+#include "newdisk/diskcreator.h"
 #include "np2ui.h"
 #include "np2mt.h"
 #include "np2.h"
@@ -155,6 +156,9 @@ void MainWindow::buildMenus()
 	m_actStartPause = emu->addAction(tr("&Pause"), this, &MainWindow::startPause);
 	emu->addAction(tr("&Reset"), this, &MainWindow::reset);
 	emu->addSeparator();
+	emu->addAction(tr("New &FD Image..."), this, [this]() { DiskCreator::newFdImage(this); });
+	emu->addAction(tr("New &HD Image..."), this, [this]() { DiskCreator::newHdImage(this); });
+	emu->addSeparator();
 	emu->addAction(tr("E&xit"), this, &QWidget::close);
 
 	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
@@ -295,7 +299,7 @@ void MainWindow::openFd(int drv)
 	const QString path = QFileDialog::getOpenFileName(this,
 	    tr("Open FD%1 Image").arg(drv + 1),
 	    startDir(fddfolder, np2cfg.fddfile[drv]),
-	    tr("FD images (*.d88 *.88d *.d98 *.98d *.fdi *.hdm *.xdf *.dup *.2hd *.nfd *.dcp *.dcu *.flp *.vfdd);;All files (*)"));
+	    tr("FD images (*.d88 *.88d *.d98 *.98d *.fdi *.hdm *.hd4 *.xdf *.dup *.2hd *.nfd *.dcp *.dcu *.flp *.vfdd);;All files (*)"));
 	if (path.isEmpty()) {
 		return;
 	}
