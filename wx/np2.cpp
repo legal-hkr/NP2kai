@@ -82,6 +82,8 @@ NP2OSCFG np2oscfg = {
 	0,          /* readonly */
 	-1, -1,     /* winx, winy */
 	640, 400,   /* winwidth, winheight */
+	0,          /* cycle_shot_enabled */
+	1, 1,       /* mousemul, mousediv */
 };
 
 char   cycle_shot_path[512] = "np2kai_capture.png";
@@ -146,6 +148,8 @@ void np2oscfg_setdefault(void)
 	np2oscfg.winheight = 400;
 
 	np2oscfg.cycle_shot_enabled = 0;
+	np2oscfg.mousemul = 1;
+	np2oscfg.mousediv = 1;
 
 	/* cycle screenshot */
 	milstr_ncpy(cycle_shot_path, "np2kai_capture.png", sizeof(cycle_shot_path));

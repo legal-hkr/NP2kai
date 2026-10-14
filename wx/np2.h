@@ -98,6 +98,10 @@ typedef struct {
 	UINT	winheight;
 
 	UINT8	cycle_shot_enabled;
+
+	/* Mouse speed as a fraction, as MOUSEMUL/MOUSEDIV in the Windows port */
+	SINT16	mousemul;
+	SINT16	mousediv;
 } NP2OSCFG;
 
 /* cycle screenshot (defined in np2.cpp) */

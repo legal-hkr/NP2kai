@@ -174,14 +174,17 @@ static QPointF unrotate(const QPointF &d)
 }
 
 /* Widget coordinates are logical; the PC-98 mouse moves in device pixels, as
- * it did in the wx port, so HiDPI scaling doesn't slow it down. Fractions are
- * carried over to the next event. */
+ * it did in the wx port, so HiDPI scaling doesn't slow it down. The speed set
+ * on the Input page slows it from there. Fractions are carried over to the
+ * next event, so a slow mouse still moves on small motions. */
 void PointerCapture::emitDelta(const QPointF &delta)
 {
 	if (!m_captured) {
 		return;
 	}
-	const QPointF d = unrotate(delta) * m_target->devicePixelRatioF() + m_remainder;
+	const double speed = (np2oscfg.mousemul > 0 && np2oscfg.mousediv > 0)
+	                   ? double(np2oscfg.mousemul) / np2oscfg.mousediv : 1.0;
+	const QPointF d = unrotate(delta) * (m_target->devicePixelRatioF() * speed) + m_remainder;
 	const int dx = static_cast<int>(d.x());
 	const int dy = static_cast<int>(d.y());
 	m_remainder = QPointF(d.x() - dx, d.y() - dy);
