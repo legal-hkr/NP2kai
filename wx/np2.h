@@ -133,6 +133,9 @@ extern "C" {
 int  flagsave(const OEMCHAR *ext);
 void flagdelete(const OEMCHAR *ext);
 int  flagload(const OEMCHAR *ext, const OEMCHAR *title, BOOL force);
+/* Does the save or load flagsave()/flagload() asked for; with the emulation
+ * stopped only, np2_exec() does it otherwise. Returns the STATFLAG result. */
+int  np2_statsave_flush(void);
 void changescreen(UINT8 newmode);
 
 extern int  mmxflag;

@@ -179,6 +179,20 @@ static void getstatfilename(OEMCHAR *path, const OEMCHAR *ext, int size)
 	file_cpyname(path, file_getcd(filename), size);
 }
 
+/* statsave_save() and statsave_load() only note the file; the state is read
+ * or written between two frames, as the SDL port does */
+int np2_statsave_flush(void)
+{
+	int ret = STATFLAG_SUCCESS;
+	if (g_u8ControlState == 1) {
+		ret = statsave_save_d();
+	} else if (g_u8ControlState == 2) {
+		ret = statsave_load_d();
+	}
+	g_u8ControlState = 0;
+	return ret;
+}
+
 int flagsave(const OEMCHAR *ext)
 {
 	OEMCHAR path[MAX_PATH];
@@ -487,6 +501,7 @@ static void processwait(UINT cnt)
 
 void np2_exec(void)
 {
+	np2_statsave_flush();
 	taskmng_rol();
 	autokey_exec();
 
@@ -653,6 +668,7 @@ void np2_terminate(void)
 	/* save resume state */
 	if (np2oscfg.resume) {
 		flagsave("s0");
+		np2_statsave_flush();   /* no frame comes after this one */
 	}
 
 	pccore_term();
