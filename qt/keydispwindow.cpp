@@ -11,6 +11,7 @@
 #include <QCloseEvent>
 #include <QMenuBar>
 #include <QPainter>
+#include <QtMath>
 
 /* The colours of the GTK port: background, keys, a note playing */
 static const UINT32 kPalette[KEYDISP_PALS] = { 0x000000, 0xffffff, 0xff0000 };
@@ -39,6 +40,7 @@ KeyDispWindow::KeyDispWindow(MainWindow *parent)
 	, m_main(parent)
 	, m_menuBar(new QMenuBar(this))
 	, m_modes(new QActionGroup(this))
+	, m_zoom(1)
 {
 	setWindowTitle(tr("Key Display"));
 	setAttribute(Qt::WA_OpaquePaintEvent);
@@ -90,14 +92,28 @@ void KeyDispWindow::setMode(unsigned char mode)
 }
 
 /* One keyboard per channel in use; the core says when that changes */
+/* The keyboards draw a white key in 4 pixels; shown twice as large, as the
+ * jumper pictures in the preferences are. Scaled further by the device pixel
+ * ratio and by a font DPI above 96, which some desktops use for HiDPI in place
+ * of the ratio, and rounded to whole device pixels to keep the pixel art sharp. */
+static const int kZoom = 2;
+
+int KeyDispWindow::zoom() const
+{
+	return qMax(1, qRound(kZoom * devicePixelRatioF() * logicalDpiY() / 96.0));
+}
+
 void KeyDispWindow::resizeToKeys()
 {
 	int width, height;
 	keydisp_getsize(&width, &height);
 	m_image = QImage(width, qMax(height, 1), QImage::Format_RGB32);
 	m_image.fill(Qt::black);
-	setFixedSize(width, m_menuBar->sizeHint().height() + qMax(height, 1));
-	m_menuBar->setFixedWidth(width);
+	m_zoom = zoom();
+	const qreal dpr = devicePixelRatioF();
+	const int shownWidth = qCeil(width * m_zoom / dpr);
+	setFixedSize(shownWidth, m_menuBar->sizeHint().height() + qCeil(m_image.height() * m_zoom / dpr));
+	m_menuBar->setFixedWidth(shownWidth);
 
 	CMNVRAM vram = {};
 	vram.ptr = m_image.bits();
@@ -132,7 +148,22 @@ void KeyDispWindow::tick()
 void KeyDispWindow::paintEvent(QPaintEvent *)
 {
 	QPainter painter(this);
-	painter.drawImage(0, m_menuBar->sizeHint().height(), m_image);
+	const qreal dpr = devicePixelRatioF();
+	painter.fillRect(rect(), Qt::black);
+	painter.scale(1.0 / dpr, 1.0 / dpr);
+	painter.drawImage(QRect(0, qRound(m_menuBar->sizeHint().height() * dpr),
+	                        m_image.width() * m_zoom, m_image.height() * m_zoom), m_image);
+}
+
+/* Moved to a screen with other scaling */
+bool KeyDispWindow::event(QEvent *event)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+	if (event->type() == QEvent::DevicePixelRatioChange && isVisible() && zoom() != m_zoom) {
+		resizeToKeys();
+	}
+#endif
+	return QWidget::event(event);
 }
 
 void KeyDispWindow::showEvent(QShowEvent *event)

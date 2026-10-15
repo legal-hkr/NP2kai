@@ -26,6 +26,7 @@ Q_SIGNALS:
 	void closed();
 
 protected:
+	bool event(QEvent *event) override;
 	void paintEvent(QPaintEvent *event) override;
 	void showEvent(QShowEvent *event) override;
 	void closeEvent(QCloseEvent *event) override;
@@ -35,11 +36,13 @@ private:
 	QMenuBar     *m_menuBar;
 	QActionGroup *m_modes;
 	QImage        m_image;
+	int           m_zoom;
 	QTimer        m_timer;
 
 	void switchMode(unsigned char mode);
 	void setMode(unsigned char mode);
 	void tick();
+	int zoom() const;
 	void resizeToKeys();
 };
 
