@@ -27,6 +27,11 @@ public:
 	/* The PC-98 screen as the emulator draws it, before rotation */
 	QSize frameSize() const { return m_image.size(); }
 
+	/* A PC-98 screen of that size as shown at x1: rotated, and stretched to
+	 * 4:3 when that is on */
+	static QSize displaySizeFor(const QSize &frame);
+	QSize displaySize() const { return displaySizeFor(m_image.size()); }
+
 	QSize sizeHint() const override;
 
 Q_SIGNALS:

@@ -76,35 +76,78 @@ QImage ScreenWidget::frame() const
 	return m_image.transformed(QTransform().rotate(deg));
 }
 
+QSize ScreenWidget::displaySizeFor(const QSize &frame)
+{
+	if (frame.isEmpty()) {
+		return frame;
+	}
+	QSize s = (scrnmode & SCRNMODE_ROTATE) ? frame.transposed() : frame;
+	if (np2oscfg.force43) {
+		if (s.width() >= s.height()) {
+			s.setHeight(qRound(s.width() * 3 / 4.0));
+		} else {
+			s.setWidth(qRound(s.height() * 3 / 4.0));
+		}
+	}
+	return s;
+}
+
+/* Drawn in device pixels, so that pixel-perfect means it on HiDPI screens too.
+ * Fitted with the aspect ratio kept, or at the largest whole multiple when
+ * pixel-perfect; the rest stays black. */
 void ScreenWidget::paintEvent(QPaintEvent *)
 {
 	QPainter p(this);
-	p.fillRect(rect(), Qt::black);
+	const qreal dpr = devicePixelRatioF();
+	p.scale(1.0 / dpr, 1.0 / dpr);
+	const QSizeF area = QSizeF(size()) * dpr;
+	p.fillRect(QRectF(QPointF(0, 0), area), Qt::black);
 	if (m_image.isNull()) {
 		return;
 	}
 
+	const QSize base = displaySize();
+	QSizeF fit;
+	const int whole = static_cast<int>(qMin(area.width() / base.width(), area.height() / base.height()));
+	if (np2oscfg.pixelperfect && whole >= 1) {
+		fit = QSizeF(base) * whole;
+	} else {
+		fit = QSizeF(base).scaled(area, Qt::KeepAspectRatio);
+	}
+	const QRectF target(qRound((area.width() - fit.width()) / 2.0), qRound((area.height() - fit.height()) / 2.0),
+	                    qRound(fit.width()), qRound(fit.height()));
+
 	const int deg = rotationDegrees();
 	const bool portrait = (deg == 90 || deg == 270);
-	const QSizeF src = portrait ? QSizeF(m_image.height(), m_image.width())
-	                            : QSizeF(m_image.size());
+	/* The target in the frame's own axes */
+	const QSizeF drawn = portrait ? target.size().transposed() : target.size();
 
-	/* Fit while keeping the aspect ratio; the rest stays black */
-	QSizeF fit = src.scaled(size(), Qt::KeepAspectRatio);
-	QRectF target(QPointF((width() - fit.width()) / 2.0, (height() - fit.height()) / 2.0), fit);
-
-	const bool smooth = (np2oscfg.drawinterp == INTERP_BILINEAR
-	                     || np2oscfg.drawinterp == INTERP_HYPER);
+	QImage src = m_image;
+	bool smooth = (np2oscfg.drawinterp == INTERP_BILINEAR || np2oscfg.drawinterp == INTERP_HYPER)
+	              && !np2oscfg.pixelperfect;
+	if (!smooth && np2oscfg.force43) {
+		/* 4:3 needs a scale no whole multiple gives. Sharp bilinear: the
+		 * whole part with square pixels, only the rest smoothed, instead of
+		 * every fifth row drawn taller. */
+		const int kx = qMax(1, static_cast<int>(drawn.width() / m_image.width()));
+		const int ky = qMax(1, static_cast<int>(drawn.height() / m_image.height()));
+		if (drawn != QSizeF(m_image.width() * kx, m_image.height() * ky)) {
+			if (kx > 1 || ky > 1) {
+				src = m_image.scaled(m_image.width() * kx, m_image.height() * ky,
+				                     Qt::IgnoreAspectRatio, Qt::FastTransformation);
+			}
+			smooth = true;
+		}
+	}
 	p.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
 
 	if (deg == 0) {
-		p.drawImage(target, m_image);
+		p.drawImage(target, src);
 		return;
 	}
 	p.translate(target.center());
 	p.rotate(deg);
-	const QSizeF drawn = portrait ? fit.transposed() : fit;
-	p.drawImage(QRectF(QPointF(-drawn.width() / 2.0, -drawn.height() / 2.0), drawn), m_image);
+	p.drawImage(QRectF(QPointF(-drawn.width() / 2.0, -drawn.height() / 2.0), drawn), src);
 }
 
 /* Keys the frontend keeps for itself. Returns true when the key was used. */

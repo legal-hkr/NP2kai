@@ -274,6 +274,12 @@ void MainWindow::buildMenus()
 	m_actFullScreen->setCheckable(true);
 	m_actFullScreen->setShortcuts({ QKeySequence(Qt::ALT | Qt::Key_Enter), QKeySequence(Qt::ALT | Qt::Key_Return) });
 	addAction(m_actFullScreen);
+	m_actPixelPerfect = disp->addAction(tr("&Pixel-perfect"), this, &MainWindow::setPixelPerfect);
+	m_actPixelPerfect->setCheckable(true);
+	m_actPixelPerfect->setStatusTip(tr("Enlarge the PC-98 pixels by whole multiples only, mostly seen in full screen"));
+	m_actForce43 = disp->addAction(tr("Force &4:3 aspect ratio"), this, &MainWindow::setForce43);
+	m_actForce43->setCheckable(true);
+	m_actForce43->setStatusTip(tr("Stretch the screen to 4:3, as a CRT showed 640x400"));
 	disp->addSeparator();
 
 	/* Menu order and labels as in the wx port */
@@ -381,6 +387,8 @@ void MainWindow::updateMenuStatus()
 	m_cdMenu->setTitle(withFileName(tr("&CD-ROM"),
 	                   cd >= 0 ? sxsi_getfilename(static_cast<REG8>(cd)) : nullptr));
 	m_actFullScreen->setChecked(isFullScreen());
+	m_actPixelPerfect->setChecked(np2oscfg.pixelperfect != 0);
+	m_actForce43->setChecked(np2oscfg.force43 != 0);
 	m_actRotate[rotationIndex()]->setChecked(true);
 	for (int i = 0; i < 6; i++) {
 		m_actSpeed[i]->setChecked(np2cfg.emuspeed == kSpeeds[i]);
@@ -627,12 +635,8 @@ void MainWindow::setScreenScale(int scale)
 	}
 	int w, h;
 	scrnmng_getsize(&w, &h);
-	QSize target(w * scale, h * scale);
-	if (scrnmode & SCRNMODE_ROTATE) {
-		target.transpose();
-	}
 	const QSize extra = size() - m_screen->size();
-	resize(target + extra);
+	resize(ScreenWidget::displaySizeFor(QSize(w, h)) * scale + extra);
 }
 
 void MainWindow::sendCtrlAltDel()
@@ -650,16 +654,32 @@ void MainWindow::sendCtrlAltDel()
  * screen and a maximised window are left as they are. */
 void MainWindow::fitToFrame(const QSize &previous)
 {
-	if (isFullScreen() || isMaximized() || m_screen->frameSize().isEmpty()) {
+	const QSize now = m_screen->displaySize();
+	if (previous.isEmpty()) {
+		/* The saved size may have another aspect ratio; keep its width */
+		if (!now.isEmpty()) {
+			rescaleWindow(m_screen->width() / double(now.width()), now);
+		}
+	} else {
+		rescaleWindow(ScreenWidget::displaySizeFor(previous), now);
+	}
+}
+
+/* The window shows a picture of size before; keeps that scale for one of size
+ * now */
+void MainWindow::rescaleWindow(const QSize &before, const QSize &now)
+{
+	if (!before.isEmpty()) {
+		rescaleWindow(qMin(m_screen->width() / double(before.width()),
+		                   m_screen->height() / double(before.height())), now);
+	}
+}
+
+void MainWindow::rescaleWindow(double scale, const QSize &now)
+{
+	if (isFullScreen() || isMaximized() || now.isEmpty()) {
 		return;
 	}
-	const bool portrait = (scrnmode & SCRNMODE_ROTATE) != 0;
-	auto shown = [portrait](const QSize &s) { return portrait ? s.transposed() : s; };
-	const QSize now = shown(m_screen->frameSize());
-	const QSize before = previous.isEmpty() ? now : shown(previous);
-
-	double scale = qMin(m_screen->width() / double(before.width()),
-	                    m_screen->height() / double(before.height()));
 	/* Not past the screen, bars and window frame included */
 	const QSize extra = size() - m_screen->size();
 	if (const QScreen *s = QWidget::screen()) {
@@ -678,13 +698,28 @@ void MainWindow::updateSizeMenu()
 {
 	int w, h;
 	scrnmng_getsize(&w, &h);
-	if (scrnmode & SCRNMODE_ROTATE) {
-		std::swap(w, h);
-	}
+	const QSize base = ScreenWidget::displaySizeFor(QSize(w, h));
 	const bool windowed = !isFullScreen() && !isMaximized();
 	for (int scale = 1; scale <= 3; scale++) {
-		m_actSize[scale - 1]->setChecked(windowed && m_screen->size() == QSize(w * scale, h * scale));
+		m_actSize[scale - 1]->setChecked(windowed && m_screen->size() == base * scale);
 	}
+}
+
+void MainWindow::setPixelPerfect(bool on)
+{
+	np2oscfg.pixelperfect = on ? 1 : 0;
+	sysmng_update(SYS_UPDATEOSCFG);
+	m_screen->update();
+}
+
+/* The window keeps its scale: x2 of 640x400 becomes x2 of 640x480 */
+void MainWindow::setForce43(bool on)
+{
+	const QSize before = m_screen->displaySize();
+	np2oscfg.force43 = on ? 1 : 0;
+	sysmng_update(SYS_UPDATEOSCFG);
+	rescaleWindow(before, m_screen->displaySize());
+	m_screen->update();
 }
 
 void MainWindow::showKeyDisp(bool show)

@@ -383,6 +383,8 @@ static const INITBL np2_tbl[] = {
 	{"MOUSEMUL",  INITYPE_SINT16, &np2oscfg.mousemul,  0},
 	{"MOUSEDIV",  INITYPE_SINT16, &np2oscfg.mousediv,  0},
 	{"RAWMOUSE",  INITYPE_BOOL,   &np2oscfg.rawmouse,  0},
+	{"PixelPerfect", INITYPE_BOOL, &np2oscfg.pixelperfect, 0},
+	{"Force43",   INITYPE_BOOL,   &np2oscfg.force43,   0},
 	{"F11_KEY",   INITYPE_UINT8,  &np2oscfg.F11KEY,    0},
 	{"F12_Copy",  INITYPE_UINT8,  &np2oscfg.F12KEY,    0},
 	{"xrollkey",  INITYPE_BOOL,   &np2oscfg.xrollkey,  0},

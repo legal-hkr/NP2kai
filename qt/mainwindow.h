@@ -53,6 +53,8 @@ private:
 	QAction *m_actSlot[10];
 	QAction *m_actLoadState;
 	QAction *m_actFullScreen;
+	QAction *m_actPixelPerfect;
+	QAction *m_actForce43;
 	QAction *m_actRotate[4];
 	QAction *m_actKeyDisp;
 	QAction *m_actSize[3];
@@ -101,6 +103,10 @@ private:
 	void setRotation(int index);
 	void setScreenScale(int scale);
 	void fitToFrame(const QSize &previous);
+	void rescaleWindow(const QSize &before, const QSize &now);
+	void rescaleWindow(double scale, const QSize &now);
+	void setPixelPerfect(bool on);
+	void setForce43(bool on);
 	void updateSizeMenu();
 	void showKeyDisp(bool show);
 

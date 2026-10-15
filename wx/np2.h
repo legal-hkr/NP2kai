@@ -105,6 +105,11 @@ typedef struct {
 	/* Mouse moves without the host's acceleration, which the guest OS adds
 	 * on its own (RAWMOUSE in the Windows port) */
 	UINT8	rawmouse;
+
+	/* Whole multiples of the PC-98 pixels only; the screen stretched to 4:3,
+	 * as a 640x400 picture filled a CRT */
+	UINT8	pixelperfect;
+	UINT8	force43;
 } NP2OSCFG;
 
 /* cycle screenshot (defined in np2.cpp) */
