@@ -100,6 +100,7 @@ MainWindow::MainWindow()
 	, m_running(true)
 	, m_volButton(nullptr)
 	, m_speedButton(nullptr)
+	, m_captureLabel(nullptr)
 	, m_lastVol(np2cfg.vol_master ? np2cfg.vol_master : 100)
 	, m_lastSpeed(np2cfg.emuspeed != 100 ? np2cfg.emuspeed : 200)
 	, m_shownVol(-1)
@@ -115,6 +116,7 @@ MainWindow::MainWindow()
 	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
 	connect(m_screen, &ScreenWidget::menuBarToggleRequested, this, &MainWindow::toggleMenuBar);
 	connect(m_screen, &ScreenWidget::frameSizeChanged, this, &MainWindow::fitToFrame);
+	connect(m_screen, &ScreenWidget::mouseCaptureChanged, this, &MainWindow::showMouseCapture);
 	connect(&m_emuTimer, &QTimer::timeout, this, &MainWindow::onEmuTimer);
 
 	/* Always initialised: it also sets up the nevent mutex */
@@ -303,6 +305,9 @@ void MainWindow::buildMenus()
 		m_actRotate[i]->setCheckable(true);
 		rotateGroup->addAction(m_actRotate[i]);
 	}
+	view->addSeparator();
+	m_actStatusBar = view->addAction(tr("&Status Bar"), this, &MainWindow::setStatusBarShown);
+	m_actStatusBar->setCheckable(true);
 
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
 	QAction *paste = input->addAction(tr("&Paste Text"), this, &MainWindow::pasteText);
@@ -389,6 +394,7 @@ void MainWindow::updateMenuStatus()
 	m_actFullScreen->setChecked(isFullScreen());
 	m_actPixelPerfect->setChecked(np2oscfg.pixelperfect != 0);
 	m_actForce43->setChecked(np2oscfg.force43 != 0);
+	m_actStatusBar->setChecked(np2oscfg.statusbar != 0);
 	m_actRotate[rotationIndex()]->setChecked(true);
 	for (int i = 0; i < 6; i++) {
 		m_actSpeed[i]->setChecked(np2cfg.emuspeed == kSpeeds[i]);
@@ -582,7 +588,7 @@ void MainWindow::toggleFullScreen()
 	if (isFullScreen()) {
 		showNormal();
 		menuBar()->show();
-		statusBar()->show();
+		statusBar()->setVisible(np2oscfg.statusbar != 0);
 	} else {
 		menuBar()->hide();
 		statusBar()->hide();
@@ -705,6 +711,21 @@ void MainWindow::updateSizeMenu()
 	}
 }
 
+/* The picture keeps its size: the window grows or shrinks by the bar */
+void MainWindow::setStatusBarShown(bool on)
+{
+	np2oscfg.statusbar = on ? 1 : 0;
+	sysmng_update(SYS_UPDATEOSCFG);
+	if (isFullScreen() || statusBar()->isVisible() == on) {
+		return;     /* full screen shows no bars; leaving it applies this */
+	}
+	statusBar()->setVisible(on);
+	if (!isMaximized()) {
+		const int bar = statusBar()->sizeHint().height();
+		resize(width(), height() + (on ? bar : -bar));
+	}
+}
+
 void MainWindow::setPixelPerfect(bool on)
 {
 	np2oscfg.pixelperfect = on ? 1 : 0;
@@ -765,6 +786,11 @@ void MainWindow::pasteText()
 
 void MainWindow::buildStatusBar()
 {
+	/* The left of the bar tells how to get the mouse back while the PC-98
+	 * has it */
+	m_captureLabel = new QLabel(this);
+	statusBar()->addWidget(m_captureLabel, 1);
+	statusBar()->setVisible(np2oscfg.statusbar != 0);
 	auto makeButton = [this]() {
 		auto *button = new QToolButton(this);
 		button->setAutoRaise(true);
@@ -779,6 +805,17 @@ void MainWindow::buildStatusBar()
 	m_speedButton = makeButton();
 	connect(m_speedButton, &QToolButton::clicked, this, &MainWindow::toggleSpeed);
 	connect(m_speedButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupSpeed);
+}
+
+void MainWindow::showMouseCapture(bool captured)
+{
+	if (!captured) {
+		m_captureLabel->clear();
+	} else if (np2oscfg.F12KEY == 0) {
+		m_captureLabel->setText(tr("Press F12 or MMB to release the mouse"));
+	} else {
+		m_captureLabel->setText(tr("Press MMB to release the mouse"));
+	}
 }
 
 void MainWindow::updateStatusBar()

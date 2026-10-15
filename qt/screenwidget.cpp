@@ -25,6 +25,7 @@ ScreenWidget::ScreenWidget(QWidget *parent)
 	setAttribute(Qt::WA_OpaquePaintEvent);
 	setAttribute(Qt::WA_InputMethodEnabled, false);
 	setMinimumSize(320, 200);
+	connect(m_capture, &PointerCapture::capturedChanged, this, &ScreenWidget::mouseCaptureChanged);
 }
 
 QSize ScreenWidget::sizeHint() const

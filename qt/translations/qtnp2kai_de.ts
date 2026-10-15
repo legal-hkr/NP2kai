@@ -782,6 +782,10 @@
         <translation>90° &amp;rechts</translation>
     </message>
     <message>
+        <source>&amp;Status Bar</source>
+        <translation>&amp;Statusleiste</translation>
+    </message>
+    <message>
         <source>&amp;Input</source>
         <translation>E&amp;ingabe</translation>
     </message>
@@ -902,6 +906,14 @@
 %1</source>
         <translation>Das CD-Abbild konnte nicht geöffnet werden:
 %1</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>F12 oder mittlere Maustaste drücken, um die Maus freizugeben</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>Mittlere Maustaste drücken, um die Maus freizugeben</translation>
     </message>
     <message>
         <source>Vol: %1</source>

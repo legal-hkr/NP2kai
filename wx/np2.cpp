@@ -86,6 +86,7 @@ NP2OSCFG np2oscfg = {
 	1, 1,       /* mousemul, mousediv */
 	1,          /* rawmouse */
 	0, 0,       /* pixelperfect, force43 */
+	1,          /* statusbar */
 };
 
 char   cycle_shot_path[512] = "np2kai_capture.png";
@@ -155,6 +156,7 @@ void np2oscfg_setdefault(void)
 	np2oscfg.rawmouse = 1;
 	np2oscfg.pixelperfect = 0;
 	np2oscfg.force43 = 0;
+	np2oscfg.statusbar = 1;
 
 	/* cycle screenshot */
 	milstr_ncpy(cycle_shot_path, "np2kai_capture.png", sizeof(cycle_shot_path));

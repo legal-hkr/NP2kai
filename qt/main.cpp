@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 		if (h < 200) h = 400;
 		/* winwidth/winheight are the screen area; add the bars */
 		window.resize(w, h + window.menuBar()->sizeHint().height()
-		                   + window.statusBar()->sizeHint().height());
+		                   + (np2oscfg.statusbar ? window.statusBar()->sizeHint().height() : 0));
 		if (np2oscfg.winx >= 0 && np2oscfg.winy >= 0) {
 			window.move(np2oscfg.winx, np2oscfg.winy);  /* ignored under Wayland */
 		}

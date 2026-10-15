@@ -782,6 +782,10 @@
         <translation>90° w &amp;prawo</translation>
     </message>
     <message>
+        <source>&amp;Status Bar</source>
+        <translation>Pasek &amp;stanu</translation>
+    </message>
+    <message>
         <source>&amp;Input</source>
         <translation>Wp&amp;rowadzanie</translation>
     </message>
@@ -902,6 +906,14 @@
 %1</source>
         <translation>Nie udało się otworzyć obrazu płyty:
 %1</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>Naciśnij F12 lub MMB, aby uwolnić mysz</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>Naciśnij MMB, aby uwolnić mysz</translation>
     </message>
     <message>
         <source>Vol: %1</source>

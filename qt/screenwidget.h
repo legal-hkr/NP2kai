@@ -40,6 +40,7 @@ Q_SIGNALS:
 	/* The PC-98 changed its resolution, e.g. 640x400 to 640x480; previous is
 	 * invalid for the first frame */
 	void frameSizeChanged(const QSize &previous);
+	void mouseCaptureChanged(bool captured);
 
 protected:
 	bool event(QEvent *event) override;

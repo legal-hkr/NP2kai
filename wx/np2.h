@@ -110,6 +110,9 @@ typedef struct {
 	 * as a 640x400 picture filled a CRT */
 	UINT8	pixelperfect;
 	UINT8	force43;
+
+	/* The status bar of the window is shown */
+	UINT8	statusbar;
 } NP2OSCFG;
 
 /* cycle screenshot (defined in np2.cpp) */

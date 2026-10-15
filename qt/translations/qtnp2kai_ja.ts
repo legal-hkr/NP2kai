@@ -782,6 +782,10 @@
         <translation>右 90°(&amp;R)</translation>
     </message>
     <message>
+        <source>&amp;Status Bar</source>
+        <translation>ステータスバー(&amp;S)</translation>
+    </message>
+    <message>
         <source>&amp;Input</source>
         <translation>入力(&amp;I)</translation>
     </message>
@@ -902,6 +906,14 @@
 %1</source>
         <translation>CD イメージを開けませんでした:
 %1</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>F12 キーか中ボタンでマウスを解放します</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>中ボタンでマウスを解放します</translation>
     </message>
     <message>
         <source>Vol: %1</source>

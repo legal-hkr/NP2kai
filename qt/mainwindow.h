@@ -10,6 +10,7 @@
 
 class QAction;
 class QActionGroup;
+class QLabel;
 class QMenu;
 class QToolButton;
 class KeyDispWindow;
@@ -55,6 +56,7 @@ private:
 	QAction *m_actFullScreen;
 	QAction *m_actPixelPerfect;
 	QAction *m_actForce43;
+	QAction *m_actStatusBar;
 	QAction *m_actRotate[4];
 	QAction *m_actKeyDisp;
 	QAction *m_actSize[3];
@@ -67,6 +69,7 @@ private:
 	/* Status bar: left click mutes or goes back to x1, right click sets */
 	QToolButton *m_volButton;
 	QToolButton *m_speedButton;
+	QLabel      *m_captureLabel;
 	UINT8        m_lastVol;
 	UINT32       m_lastSpeed;
 	int          m_shownVol;     /* what the buttons show, -1 for nothing yet */
@@ -107,6 +110,8 @@ private:
 	void rescaleWindow(double scale, const QSize &now);
 	void setPixelPerfect(bool on);
 	void setForce43(bool on);
+	void setStatusBarShown(bool on);
+	void showMouseCapture(bool captured);
 	void updateSizeMenu();
 	void showKeyDisp(bool show);
 
