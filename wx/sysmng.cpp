@@ -19,6 +19,7 @@
 #include <common/milstr.h>
 #include <time.h>
 #include <stdio.h>
+#include <atomic>
 
 /* Frontend tag after the program name in the title; a port reusing this file
  * may define its own in compiler.h. */
@@ -43,6 +44,35 @@ static struct {
 	SINT32	fps;
 	SINT32	khz;
 } workclock;
+
+/* Set with one atomic OR per access, without locks; the interface collects
+ * them on its own timer */
+static std::atomic<UINT32> fddread_bits{0};
+static std::atomic<UINT32> fddwrite_bits{0};
+static std::atomic<UINT32> hddread_bits{0};
+static std::atomic<UINT32> hddwrite_bits{0};
+static std::atomic<UINT32> net_bits{0};
+
+static UINT32 hddbit(UINT8 drv)
+{
+	return (drv & 0x20) ? (0x100u << (drv & 0x07)) : (1u << (drv & 0x03));
+}
+
+void sysmng_fddaccess(UINT8 drv) { fddread_bits.fetch_or(1u << (drv & 0x03), std::memory_order_relaxed); }
+void sysmng_fddwrite(UINT8 drv)  { fddwrite_bits.fetch_or(1u << (drv & 0x03), std::memory_order_relaxed); }
+void sysmng_hddaccess(UINT8 drv) { hddread_bits.fetch_or(hddbit(drv), std::memory_order_relaxed); }
+void sysmng_hddwrite(UINT8 drv)  { hddwrite_bits.fetch_or(hddbit(drv), std::memory_order_relaxed); }
+void sysmng_netsend(void)        { net_bits.fetch_or(SYS_ACCESS_NETSEND, std::memory_order_relaxed); }
+void sysmng_netrecv(void)        { net_bits.fetch_or(SYS_ACCESS_NETRECV, std::memory_order_relaxed); }
+
+void sysmng_takeaccess(SYSMNGACCESS *access)
+{
+	access->fddread = fddread_bits.exchange(0, std::memory_order_relaxed);
+	access->fddwrite = fddwrite_bits.exchange(0, std::memory_order_relaxed);
+	access->hddread = hddread_bits.exchange(0, std::memory_order_relaxed);
+	access->hddwrite = hddwrite_bits.exchange(0, std::memory_order_relaxed);
+	access->net = net_bits.exchange(0, std::memory_order_relaxed);
+}
 
 void sysmng_initialize(void)  { sys_updates = 0; }
 void sysmng_deinitialize(void) {}
