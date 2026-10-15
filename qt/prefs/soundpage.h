@@ -13,6 +13,8 @@ namespace Ui { class SoundPage; }
 
 class SoundPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit SoundPage(QWidget *parent = nullptr);
 	~SoundPage() override;

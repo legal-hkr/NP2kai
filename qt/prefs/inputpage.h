@@ -13,6 +13,8 @@ namespace Ui { class InputPage; }
 
 class InputPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit InputPage(QWidget *parent = nullptr);
 	~InputPage() override;

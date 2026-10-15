@@ -14,21 +14,21 @@
         <item>
          <widget class="QRadioButton" name="pc_model_VM">
           <property name="text">
-           <string>PC-9801&amp;VM</string>
+           <string notr="true">PC-9801&amp;VM</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QRadioButton" name="pc_model_VX">
           <property name="text">
-           <string>PC-9801V&amp;X</string>
+           <string notr="true">PC-9801V&amp;X</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QRadioButton" name="pc_model_286">
           <property name="text">
-           <string>PC-&amp;286</string>
+           <string notr="true">PC-&amp;286</string>
           </property>
           <property name="toolTip">
            <string>EPSON compatible machine</string>
@@ -74,12 +74,12 @@
        <widget class="QComboBox" name="clk_base">
         <item>
          <property name="text">
-          <string>1.9968 MHz</string>
+          <string notr="true">1.9968 MHz</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>2.4576 MHz</string>
+          <string notr="true">2.4576 MHz</string>
          </property>
         </item>
        </widget>
@@ -105,7 +105,7 @@
            </sizepolicy>
           </property>
           <property name="prefix">
-           <string>x</string>
+           <string notr="true">x</string>
           </property>
           <property name="minimum">
            <number>1</number>
@@ -146,92 +146,92 @@
         </item>
         <item>
          <property name="text">
-          <string>Intel 80386</string>
+          <string notr="true">Intel 80386</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel i486SX</string>
+          <string notr="true">Intel i486SX</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel i486DX</string>
+          <string notr="true">Intel i486DX</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium</string>
+          <string notr="true">Intel Pentium</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel MMX Pentium</string>
+          <string notr="true">Intel MMX Pentium</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium Pro</string>
+          <string notr="true">Intel Pentium Pro</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium II</string>
+          <string notr="true">Intel Pentium II</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium III</string>
+          <string notr="true">Intel Pentium III</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium M</string>
+          <string notr="true">Intel Pentium M</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Pentium 4</string>
+          <string notr="true">Intel Pentium 4</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Core 2 Duo</string>
+          <string notr="true">Intel Core 2 Duo</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Core 2 Duo W</string>
+          <string notr="true">Intel Core 2 Duo W</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Intel Core i</string>
+          <string notr="true">Intel Core i</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>AMD K6-2</string>
+          <string notr="true">AMD K6-2</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>AMD K6-III</string>
+          <string notr="true">AMD K6-III</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>AMD K7 Athlon</string>
+          <string notr="true">AMD K7 Athlon</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>AMD K7 Athlon XP</string>
+          <string notr="true">AMD K7 Athlon XP</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Neko Processor II</string>
+          <string notr="true">Neko Processor II</string>
          </property>
         </item>
        </widget>
@@ -239,7 +239,7 @@
       <item row="3" column="0">
        <widget class="QLabel" name="fpuTypeLabel">
         <property name="text">
-         <string>&amp;FPU:</string>
+         <string notr="true">&amp;FPU:</string>
         </property>
         <property name="buddy">
          <cstring>FPU_TYPE</cstring>
@@ -279,32 +279,32 @@
        <widget class="QComboBox" name="EmuSpeed">
         <item>
          <property name="text">
-          <string>x0.5</string>
+          <string notr="true">x0.5</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>x1</string>
+          <string notr="true">x1</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>x2</string>
+          <string notr="true">x2</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>x4</string>
+          <string notr="true">x4</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>x8</string>
+          <string notr="true">x8</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>x16</string>
+          <string notr="true">x16</string>
          </property>
         </item>
        </widget>
@@ -354,7 +354,7 @@
          </sizepolicy>
         </property>
         <property name="suffix">
-         <string> MB</string>
+         <string notr="true"> MB</string>
         </property>
        </widget>
       </item>

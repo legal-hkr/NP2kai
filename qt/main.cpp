@@ -11,6 +11,8 @@
 #include <QCommandLineParser>
 #include <QFile>
 #include <QIcon>
+#include <QLibraryInfo>
+#include <QLocale>
 #include <QMenuBar>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -19,6 +21,7 @@
 #include <QSocketNotifier>
 #include <QStyle>
 #include <QStyleOptionMenuItem>
+#include <QTranslator>
 
 #include <csignal>
 #include <cstdlib>
@@ -80,12 +83,38 @@ public:
 	}
 };
 
+/* The interface in the user's first language there is a translation for.
+ * English is the language of the sources, so it ends the search: someone who
+ * prefers English to Polish gets English. Qt's own strings, such as those of
+ * the standard buttons, come from Qt's translations when they are installed. */
+static void installTranslations(QCoreApplication &app)
+{
+	for (const QString &name : QLocale::system().uiLanguages()) {
+		const QLocale locale(name);
+		if (locale.language() == QLocale::English) {
+			return;
+		}
+		auto *own = new QTranslator(&app);
+		if (own->load(locale, QStringLiteral("qtnp2kai"), QStringLiteral("_"), QStringLiteral(":/i18n"))) {
+			QCoreApplication::installTranslator(own);
+			auto *qt = new QTranslator(&app);
+			if (qt->load(locale, QStringLiteral("qtbase"), QStringLiteral("_"),
+			             QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
+				QCoreApplication::installTranslator(qt);
+			}
+			return;
+		}
+		delete own;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 	QApplication::setStyle(new MenuArrowStyle(QApplication::style()->name()));
 	QApplication::setApplicationName(QStringLiteral(NP2_WX_APPNAME));
 	QApplication::setDesktopFileName(QStringLiteral(NP2_WX_APPNAME));
+	installTranslations(app);
 	/* The installed icon, as the wx port and the .desktop file use; the copy
 	 * built in covers a binary run from its build directory. Under Wayland
 	 * the compositor takes the icon from the .desktop file named above. */
@@ -97,14 +126,14 @@ int main(int argc, char *argv[])
 	QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("np2"), builtIn));
 
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QStringLiteral("NEC PC-9801 series emulator"));
+	parser.setApplicationDescription(QCoreApplication::translate("main", "NEC PC-9801 series emulator"));
 	parser.addHelpOption();
 	QCommandLineOption configOpt({QStringLiteral("c"), QStringLiteral("config")},
-	                             QStringLiteral("Configuration file to use."),
-	                             QStringLiteral("file"));
+	                             QCoreApplication::translate("main", "Configuration file to use."),
+	                             QCoreApplication::translate("main", "file"));
 	parser.addOption(configOpt);
 	parser.addPositionalArgument(QStringLiteral("images"),
-	                             QStringLiteral("Floppy disk images for drives 1 to 4."),
+	                             QCoreApplication::translate("main", "Floppy disk images for drives 1 to 4."),
 	                             QStringLiteral("[FD1 [FD2 [FD3 [FD4]]]]"));
 	parser.process(app);
 
@@ -116,13 +145,13 @@ int main(int argc, char *argv[])
 	/* SDL does audio and joysticks only; the window is Qt's */
 	if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD)) {
 		QMessageBox::critical(nullptr, QStringLiteral("NP2kai"),
-		                      QStringLiteral("SDL_Init failed: %1").arg(QString::fromUtf8(SDL_GetError())));
+		                      QCoreApplication::translate("main", "SDL_Init failed: %1").arg(QString::fromUtf8(SDL_GetError())));
 		return EXIT_FAILURE;
 	}
 
 	if (np2_initialize(QFile::encodeName(QCoreApplication::applicationFilePath()).constData()) != SUCCESS) {
 		QMessageBox::critical(nullptr, QStringLiteral("NP2kai"),
-		                      QStringLiteral("Failed to initialise the emulator core."));
+		                      QCoreApplication::translate("main", "Failed to initialise the emulator core."));
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}

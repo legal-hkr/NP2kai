@@ -11,6 +11,8 @@ namespace Ui { class HostdrvPage; }
 
 class HostdrvPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit HostdrvPage(QWidget *parent = nullptr);
 	~HostdrvPage() override;

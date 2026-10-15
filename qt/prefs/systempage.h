@@ -11,6 +11,8 @@ namespace Ui { class SystemPage; }
 
 class SystemPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit SystemPage(QWidget *parent = nullptr);
 	~SystemPage() override;

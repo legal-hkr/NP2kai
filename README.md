@@ -41,7 +41,7 @@ $ ./wxnp21kai
 - Ubuntu
 
 ``` bash
-$ sudo apt install build-essential cmake libsdl3-dev libsdl3-ttf-dev libtomlplusplus-dev libcdio-dev libusb-1.0-0-dev qt6-base-dev qt6-base-private-dev qt6-svg-dev libwayland-dev wayland-protocols
+$ sudo apt install build-essential cmake libsdl3-dev libsdl3-ttf-dev libtomlplusplus-dev libcdio-dev libusb-1.0-0-dev qt6-base-dev qt6-base-private-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools qt6-translations-l10n libwayland-dev wayland-protocols
 
 $ cd ~
 $ git clone https://github.com/AZO234/NP2kai.git
@@ -65,6 +65,9 @@ $ sudo cmake --install build_qt
 |USE_WAYLAND|AUTO*|Lock the pointer under Wayland when wayland-client, wayland-protocols, wayland-scanner and Qt's private Gui headers are found||
 |USE_WAYLAND|ON|Same, failing when one is missing||
 |USE_WAYLAND|OFF|No pointer lock; the pointer stops at the window edge under Wayland||
+|USE_QT_TRANSLATIONS|AUTO*|Build the German, Japanese and Polish translations in when Qt's LinguistTools are found||
+|USE_QT_TRANSLATIONS|ON|Same, failing when they are missing||
+|USE_QT_TRANSLATIONS|OFF|English only||
 |BUILD_I286|ON|Build i286|qtnp2kai|
 |BUILD_I286|OFF*|Build IA-32|qtnp21kai|
 
@@ -72,6 +75,8 @@ $ sudo cmake --install build_qt
 - Settings are in Emulate > Preferences, new disk images are made from the FDD and HDD menus.
 - The left mouse button captures the mouse for the PC-98, the middle button releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
 - Runs under Wayland and X11 (`QT_QPA_PLATFORM=xcb`).
+- The interface follows the system language: German, Japanese, Polish, or English for any other. `LANGUAGE=en` (or `de`, `ja`, `pl`) picks one for a single run. The standard buttons and file dialogs take their words from Qt's own translations (`qt6-translations-l10n`).
+- Translations are in `qt/translations`. After strings change in the sources, `cmake --build build_qt --target update_translations` refreshes the `.ts` files; new strings are left unfinished for Qt Linguist and show in English until translated.
 
 
 ### libretro core

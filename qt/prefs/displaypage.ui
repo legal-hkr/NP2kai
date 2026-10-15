@@ -162,14 +162,14 @@
           <item>
            <widget class="QRadioButton" name="gdc_7220">
             <property name="text">
-             <string>uPD&amp;7220</string>
+             <string notr="true">uPD&amp;7220</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QRadioButton" name="gdc_72020">
             <property name="text">
-             <string>uPD72&amp;020</string>
+             <string notr="true">uPD72&amp;020</string>
             </property>
            </widget>
           </item>
@@ -198,17 +198,17 @@
             </item>
             <item>
              <property name="text">
-              <string>GRCG</string>
+              <string notr="true">GRCG</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>GRCG+</string>
+              <string notr="true">GRCG+</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>EGC</string>
+              <string notr="true">EGC</string>
              </property>
             </item>
            </widget>
@@ -409,7 +409,7 @@
        <item>
         <widget class="QGroupBox" name="USE_CLGD">
          <property name="title">
-          <string>&amp;CL-GD54xx</string>
+          <string notr="true">&amp;CL-GD54xx</string>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -469,37 +469,37 @@
             </item>
             <item>
              <property name="text">
-              <string>MELCO WAB-S</string>
+              <string notr="true">MELCO WAB-S</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>MELCO WSN-A2F</string>
+              <string notr="true">MELCO WSN-A2F</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>MELCO WSN-A4F</string>
+              <string notr="true">MELCO WSN-A4F</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>I-O DATA GA-98NBI/C</string>
+              <string notr="true">I-O DATA GA-98NBI/C</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>I-O DATA GA-98NBII</string>
+              <string notr="true">I-O DATA GA-98NBII</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>I-O DATA GA-98NBIV</string>
+              <string notr="true">I-O DATA GA-98NBIV</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>PC-9801-96 (PC-9801B3-E02)</string>
+              <string notr="true">PC-9801-96 (PC-9801B3-E02)</string>
              </property>
             </item>
             <item>

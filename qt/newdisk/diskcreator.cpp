@@ -23,6 +23,9 @@
 
 #include <functional>
 
+/* The helpers sit in DiskCreator too, so that lupdate files their strings
+ * under the context tr() looks them up in */
+namespace DiskCreator {
 namespace {
 
 QString tr(const char *text)
@@ -175,8 +178,6 @@ bool runWithProgress(QWidget *parent, const QString &label, bool hasProgress,
 }
 
 } // namespace
-
-namespace DiskCreator {
 
 void newFdImage(QWidget *parent)
 {

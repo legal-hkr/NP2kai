@@ -7,7 +7,7 @@
     <widget class="QTabWidget" name="midiTabs">
      <widget class="QWidget" name="mpuTab">
       <attribute name="title">
-       <string>MPU-PC98II</string>
+       <string notr="true">MPU-PC98II</string>
       </attribute>
       <layout class="QVBoxLayout" name="mpuTabLayout">
        <item>
@@ -48,22 +48,22 @@
             <widget class="QComboBox" name="MPU_IRQ">
              <item>
               <property name="text">
-               <string>INT0</string>
+               <string notr="true">INT0</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT1</string>
+               <string notr="true">INT1</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT2</string>
+               <string notr="true">INT2</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT5</string>
+               <string notr="true">INT5</string>
               </property>
              </item>
             </widget>
@@ -122,7 +122,7 @@
      </widget>
      <widget class="QWidget" name="smpuTab">
       <attribute name="title">
-       <string>S-MPU</string>
+       <string notr="true">S-MPU</string>
       </attribute>
       <layout class="QVBoxLayout" name="smpuTabLayout">
        <item>
@@ -181,22 +181,22 @@
             <widget class="QComboBox" name="SMPU_IRQ">
              <item>
               <property name="text">
-               <string>INT0</string>
+               <string notr="true">INT0</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT1</string>
+               <string notr="true">INT1</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT2</string>
+               <string notr="true">INT2</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>INT5</string>
+               <string notr="true">INT5</string>
               </property>
              </item>
             </widget>

@@ -47,27 +47,27 @@
        <item>
         <widget class="QRadioButton" name="make2DD">
          <property name="text">
-          <string>2&amp;DD</string>
+          <string notr="true">2&amp;DD</string>
          </property>
          <property name="toolTip">
-          <string>640 KB</string>
+          <string notr="true">640 KB</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QRadioButton" name="make2HD">
          <property name="text">
-          <string>2&amp;HD</string>
+          <string notr="true">2&amp;HD</string>
          </property>
          <property name="toolTip">
-          <string>1.25 MB</string>
+          <string notr="true">1.25 MB</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QRadioButton" name="make144">
          <property name="text">
-          <string>1.&amp;44 MB</string>
+          <string notr="true">1.&amp;44 MB</string>
          </property>
          <property name="toolTip">
           <string>Needs 1.44 MB floppy support in the FDD settings</string>

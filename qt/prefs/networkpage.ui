@@ -42,7 +42,7 @@
    <item>
     <widget class="QGroupBox" name="USELGY98">
      <property name="title">
-      <string>&amp;LGY-98</string>
+      <string notr="true">&amp;LGY-98</string>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -62,42 +62,42 @@
        <widget class="QComboBox" name="LGY98_IO">
         <item>
          <property name="text">
-          <string>00D0h</string>
+          <string notr="true">00D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>10D0h</string>
+          <string notr="true">10D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>20D0h</string>
+          <string notr="true">20D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>30D0h</string>
+          <string notr="true">30D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>40D0h</string>
+          <string notr="true">40D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>50D0h</string>
+          <string notr="true">50D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>60D0h</string>
+          <string notr="true">60D0h</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>70D0h</string>
+          <string notr="true">70D0h</string>
          </property>
         </item>
        </widget>
@@ -116,22 +116,22 @@
        <widget class="QComboBox" name="LGY98IRQ">
         <item>
          <property name="text">
-          <string>INT0 (IRQ3)</string>
+          <string notr="true">INT0 (IRQ3)</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>INT1 (IRQ5)</string>
+          <string notr="true">INT1 (IRQ5)</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>INT2 (IRQ6)</string>
+          <string notr="true">INT2 (IRQ6)</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>INT5 (IRQ12)</string>
+          <string notr="true">INT5 (IRQ12)</string>
          </property>
         </item>
        </widget>
@@ -149,7 +149,7 @@
       <item row="2" column="1">
        <widget class="QLineEdit" name="LGY98MAC">
         <property name="inputMask">
-         <string>HH:HH:HH:HH:HH:HH;_</string>
+         <string notr="true">HH:HH:HH:HH:HH:HH;_</string>
         </property>
        </widget>
       </item>

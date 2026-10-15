@@ -157,7 +157,7 @@
             </sizepolicy>
            </property>
            <property name="suffix">
-            <string> ms</string>
+            <string notr="true"> ms</string>
            </property>
            <property name="minimum">
             <number>10</number>
@@ -189,7 +189,7 @@
             </sizepolicy>
            </property>
            <property name="suffix">
-            <string> ms</string>
+            <string notr="true"> ms</string>
            </property>
            <property name="minimum">
             <number>10</number>

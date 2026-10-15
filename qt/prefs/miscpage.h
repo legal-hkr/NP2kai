@@ -11,6 +11,8 @@ namespace Ui { class MiscPage; }
 
 class MiscPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit MiscPage(QWidget *parent = nullptr);
 	~MiscPage() override;

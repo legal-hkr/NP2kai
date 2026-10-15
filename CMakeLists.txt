@@ -704,6 +704,23 @@ if(NOT CMAKE_CROSSCOMPILING)
 				message("-- Not found: Wayland pointer locking (the pointer stops at the window edge under Wayland)")
 			endif()
 		endif()
+
+		# Interface translations, built into the program; the language follows the system's
+		set(USE_QT_TRANSLATIONS "AUTO" CACHE STRING "Translate the Qt port's interface (AUTO, ON or OFF)")
+		set(NP2kai_QT_translations OFF)
+		if(USE_QT_TRANSLATIONS STREQUAL "AUTO" OR USE_QT_TRANSLATIONS)
+			if(USE_QT_TRANSLATIONS STREQUAL "AUTO")
+				find_package(Qt6 QUIET COMPONENTS LinguistTools)
+			else()
+				find_package(Qt6 REQUIRED COMPONENTS LinguistTools)
+			endif()
+			if(TARGET Qt6::lrelease)
+				set(NP2kai_QT_translations ON)
+				message("-- Found: Qt6 LinguistTools (interface in English, German, Japanese and Polish)")
+			else()
+				message("-- Not found: Qt6 LinguistTools (the interface stays in English)")
+			endif()
+		endif()
 	endif()
 
 	if(BUILD_WX OR BUILD_QT)
@@ -1564,6 +1581,22 @@ else()
 			set_target_properties(qtnp2kai PROPERTIES EXCLUDE_FROM_ALL true)
 		else()
 			set_target_properties(qtnp21kai PROPERTIES EXCLUDE_FROM_ALL true)
+		endif()
+
+		if(NP2kai_QT_translations)
+			# One set of .ts files for both programs, whose sources are the
+			# same; lupdate reads only the files of qt/. The update_translations
+			# target refreshes the .ts files after the strings change.
+			set(NP2kai_QT_tr_sources ${NP2kai_QT_sources})
+			list(FILTER NP2kai_QT_tr_sources INCLUDE REGEX "/qt/.*\\.(cpp|ui)$")
+			qt_add_translations(qtnp21kai
+				TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_de.ts" "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_ja.ts" "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_pl.ts"
+				SOURCES ${NP2kai_QT_tr_sources}
+				LUPDATE_OPTIONS -no-obsolete -locations none
+				QM_FILES_OUTPUT_VARIABLE NP2kai_QT_qm_files)
+			foreach(NP2kai_QT_NAME qtnp2kai qtnp21kai)
+				qt_add_resources(${NP2kai_QT_NAME} "translations" PREFIX "/i18n" BASE "${CMAKE_CURRENT_BINARY_DIR}" FILES ${NP2kai_QT_qm_files})
+			endforeach()
 		endif()
 
 		# One English and one Japanese man page for both programs, filled in

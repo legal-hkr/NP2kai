@@ -12,28 +12,28 @@
       <item>
        <widget class="QCheckBox" name="FDDRIVE1">
         <property name="text">
-         <string>FD &amp;1</string>
+         <string notr="true">FD &amp;1</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="FDDRIVE2">
         <property name="text">
-         <string>FD &amp;2</string>
+         <string notr="true">FD &amp;2</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="FDDRIVE3">
         <property name="text">
-         <string>FD &amp;3</string>
+         <string notr="true">FD &amp;3</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="FDDRIVE4">
         <property name="text">
-         <string>FD &amp;4</string>
+         <string notr="true">FD &amp;4</string>
         </property>
        </widget>
       </item>

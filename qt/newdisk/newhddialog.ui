@@ -44,7 +44,7 @@
      <item>
       <widget class="QLabel" name="hddSizeUnit">
        <property name="text">
-        <string>MB</string>
+        <string notr="true">MB</string>
        </property>
       </widget>
      </item>

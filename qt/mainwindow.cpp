@@ -260,7 +260,7 @@ void MainWindow::buildMenus()
 	for (int drv = 0; drv < 4; drv++) {
 		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
 		m_hdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openHd(drv); });
-		m_hdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectHd(drv); });
+		m_hdMenu[drv]->addAction(tr("&Eject", "hard disk"), this, [this, drv]() { ejectHd(drv); });
 	}
 	hdd->addSeparator();
 	hdd->addAction(tr("&New Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });

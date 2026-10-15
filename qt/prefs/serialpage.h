@@ -13,6 +13,8 @@ namespace Ui { class SerialPage; }
 
 class SerialPage : public PrefPage
 {
+	Q_OBJECT
+
 public:
 	explicit SerialPage(QWidget *parent = nullptr);
 	~SerialPage() override;

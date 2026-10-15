@@ -29,7 +29,7 @@
        </item>
        <item>
         <property name="text">
-         <string>MIDI</string>
+         <string notr="true">MIDI</string>
         </property>
        </item>
       </widget>
@@ -101,22 +101,22 @@
         <widget class="QComboBox" name="dataBits">
          <item>
           <property name="text">
-           <string>5</string>
+           <string notr="true">5</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>6</string>
+           <string notr="true">6</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>7</string>
+           <string notr="true">7</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>8</string>
+           <string notr="true">8</string>
           </property>
          </item>
         </widget>
@@ -164,17 +164,17 @@
         <widget class="QComboBox" name="stopBits">
          <item>
           <property name="text">
-           <string>1</string>
+           <string notr="true">1</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>1.5</string>
+           <string notr="true">1.5</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>2</string>
+           <string notr="true">2</string>
           </property>
          </item>
         </widget>

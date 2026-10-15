@@ -7,12 +7,12 @@
     <widget class="QTabWidget" name="serialTabs">
      <widget class="SerialPortBox" name="com1Box">
       <attribute name="title">
-       <string>COM1</string>
+       <string notr="true">COM1</string>
       </attribute>
      </widget>
      <widget class="QWidget" name="pc9861Tab">
       <attribute name="title">
-       <string>PC-9861K</string>
+       <string notr="true">PC-9861K</string>
       </attribute>
       <layout class="QVBoxLayout" name="pc9861Layout">
        <item>
@@ -48,7 +48,7 @@
          <item row="1" column="0">
           <widget class="QLabel" name="ch1Label">
            <property name="text">
-            <string>CH.1:</string>
+            <string notr="true">CH.1:</string>
            </property>
           </widget>
          </item>
@@ -64,7 +64,7 @@
          <item row="2" column="0">
           <widget class="QLabel" name="ch2Label">
            <property name="text">
-            <string>CH.2:</string>
+            <string notr="true">CH.2:</string>
            </property>
           </widget>
          </item>
@@ -118,12 +118,12 @@
      </widget>
      <widget class="SerialPortBox" name="ch1Box">
       <attribute name="title">
-       <string>CH.1</string>
+       <string notr="true">CH.1</string>
       </attribute>
      </widget>
      <widget class="SerialPortBox" name="ch2Box">
       <attribute name="title">
-       <string>CH.2</string>
+       <string notr="true">CH.2</string>
       </attribute>
      </widget>
     </widget>

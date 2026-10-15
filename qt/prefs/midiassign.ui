@@ -18,7 +18,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="midiOutLabel">
      <property name="text">
-      <string>MIDI-&amp;OUT:</string>
+      <string notr="true">MIDI-&amp;OUT:</string>
      </property>
      <property name="buddy">
       <cstring>midiOut</cstring>
@@ -67,7 +67,7 @@
    <item row="1" column="0">
     <widget class="QLabel" name="midiInLabel">
      <property name="text">
-      <string>MIDI-&amp;IN:</string>
+      <string notr="true">MIDI-&amp;IN:</string>
      </property>
      <property name="buddy">
       <cstring>midiIn</cstring>
