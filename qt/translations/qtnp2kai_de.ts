@@ -1776,14 +1776,6 @@ Abbild trotzdem erstellen?</translation>
         <source>Press MMB to release the mouse</source>
         <translation>Mittlere Maustaste drücken, um die Maus freizugeben</translation>
     </message>
-    <message>
-        <source>F12, MMB</source>
-        <translation>F12, Mittelklick</translation>
-    </message>
-    <message>
-        <source>MMB</source>
-        <translation>Mittelklick</translation>
-    </message>
 </context>
 <context>
     <name>SystemPage</name>

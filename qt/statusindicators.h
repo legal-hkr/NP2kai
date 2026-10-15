@@ -57,7 +57,6 @@ private:
 	QVector<Item>  m_items;
 	QLabel        *m_caps;
 	QLabel        *m_kana;
-	QLabel        *m_release;   /* how to release the mouse, next to its icon */
 	QMenu         *m_fdMenu[4];
 	QMenu         *m_hdMenu[4];
 	QMenu         *m_cdMenu[4];
@@ -77,7 +76,8 @@ private:
 };
 
 /* base with a short text on a dark label in its lower right corner, drawn at
- * whatever scale the icon is shown */
-QIcon badgeIcon(const QIcon &base, const QString &text);
+ * whatever scale the icon is shown; dimmed, it looks disabled whole; shrunk,
+ * the label covers less of it */
+QIcon badgeIcon(const QIcon &base, const QString &text, bool dimmed = false, bool shrink = true);
 
 #endif /* NP2_QT_STATUSINDICATORS_H */

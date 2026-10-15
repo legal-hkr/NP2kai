@@ -1776,14 +1776,6 @@ Utworzyć obraz mimo to?</translation>
         <source>Press MMB to release the mouse</source>
         <translation>Naciśnij MMB, aby uwolnić mysz</translation>
     </message>
-    <message>
-        <source>F12, MMB</source>
-        <translation>F12, MMB</translation>
-    </message>
-    <message>
-        <source>MMB</source>
-        <translation>MMB</translation>
-    </message>
 </context>
 <context>
     <name>SystemPage</name>

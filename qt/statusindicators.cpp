@@ -11,6 +11,7 @@
 #include <diskimage/fddfile.h>
 #include <fdd/sxsi.h>
 
+#include <QApplication>
 #include <QDir>
 #include <QHBoxLayout>
 #include <QIconEngine>
@@ -19,7 +20,9 @@
 #include <QPainter>
 #include <QStatusBar>
 #include <QStyle>
+#include <QStyleOption>
 #include <QToolButton>
+#include <QtMath>
 
 /* How long a lamp stays lit after the last access, so a single sector shows */
 static const qint64 kLampMs = 120;
@@ -63,8 +66,6 @@ StatusIndicators::StatusIndicators(QStatusBar *bar, QWidget *window)
 	m_caps = addLabel(QStringLiteral("CAPS"), tr("Caps Lock"));
 	m_kana = addLabel(QString::fromUtf8("カナ"), tr("Kana Lock"));
 	addItem(Mouse, 0, input);
-	/* The keys that release the mouse, dimmed with its icon while it is free */
-	m_release = addLabel(QString(), QString());
 
 	m_clock.start();
 	connect(&m_timer, &QTimer::timeout, this, &StatusIndicators::tick);
@@ -203,7 +204,6 @@ void StatusIndicators::refresh(Item &item, qint64 now, bool force)
 	case Mouse: {
 		/* F12 is left to the PC-98 when it is set to send one of its keys */
 		const bool f12 = (np2oscfg.F12KEY == 0);
-		loaded = m_mouseCaptured;
 		if (!m_mouseCaptured) {
 			tip = tr("Click the screen to capture the mouse");
 		} else if (f12) {
@@ -211,15 +211,29 @@ void StatusIndicators::refresh(Item &item, qint64 now, bool force)
 		} else {
 			tip = tr("Press MMB to release the mouse");
 		}
-		const QString keys = f12 ? tr("F12, MMB") : tr("MMB");
-		if (m_release->text() != keys) {
-			m_release->setText(keys);
+		if (item.tip != tip) {
+			item.tip = tip;
+			item.button->setToolTip(tip);
 		}
-		m_release->setEnabled(m_mouseCaptured);
-		if (m_release->toolTip() != tip) {
-			m_release->setToolTip(tip);
+		/* The key that releases it on the icon, as the speed on its button;
+		 * the middle button where F12 goes to the PC-98. Dimmed whole while
+		 * the mouse is free. */
+		const int key = (m_mouseCaptured ? 1 : 0) | (f12 ? 2 : 0);
+		if (force || item.iconKey != key) {
+			item.iconKey = key;
+			const QString keys = f12 ? QStringLiteral("F12") : QStringLiteral("MMB");
+			/* At its full size, the same design of the theme as elsewhere,
+			 * and wider: the label is longer than the speed's and starts
+			 * from the middle of the mouse as that one does */
+			const int side = m_items.first().button->iconSize().height();
+			QFont font = QApplication::font();
+			font.setBold(true);
+			font.setPixelSize(qMax(6, side / 2));
+			const qreal label = QFontMetricsF(font).horizontalAdvance(keys) + side / 8.0;
+			item.button->setIconSize(QSize(qMax(side, qCeil(side / 2.0 + label)), side));
+			item.button->setIcon(badgeIcon(baseIcon(Mouse), keys, !m_mouseCaptured, false));
 		}
-		break;
+		return;
 	}
 	}
 
@@ -325,33 +339,15 @@ namespace {
 class BadgeIconEngine : public QIconEngine
 {
 public:
-	BadgeIconEngine(const QIcon &base, const QString &text) : m_base(base), m_text(text) {}
+	BadgeIconEngine(const QIcon &base, const QString &text, bool dimmed, bool shrink)
+		: m_base(base), m_text(text), m_dimmed(dimmed), m_shrink(shrink) {}
 
 	void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) override
 	{
-		/* The icon a little smaller, up and left, so the label leaves it
-		 * recognisable */
-		const int side = rect.height() * 13 / 16;
-		m_base.paint(painter, QRect(rect.topLeft(), QSize(side, side)), Qt::AlignCenter, mode, state);
-		painter->save();
-		painter->setRenderHint(QPainter::Antialiasing);
-		QFont font = painter->font();
-		font.setBold(true);
-		font.setPixelSize(qMax(6, rect.height() / 2));
-		painter->setFont(font);
-		const QFontMetricsF fm(font);
-		const qreal h = fm.capHeight() + rect.height() / 8.0;
-		const qreal w = qMin<qreal>(rect.width(), fm.horizontalAdvance(m_text) + h * 0.35);
-		const QRectF label(rect.right() + 1 - w, rect.bottom() + 1 - h, w, h);
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(QColor(0, 0, 0, 190));
-		painter->drawRoundedRect(label, h * 0.25, h * 0.25);
-		painter->setPen(Qt::white);
-		painter->drawText(label, Qt::AlignCenter, m_text);
-		painter->restore();
+		draw(painter, rect, mode, state);
 	}
 
-	/* Drawn by paint() at the size and scale asked for */
+	/* Drawn at the size and scale asked for */
 	QPixmap pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state) override
 	{
 		return scaledPixmap(size, mode, state, 1.0);
@@ -363,23 +359,81 @@ public:
 		pixmap.setDevicePixelRatio(scale);
 		pixmap.fill(Qt::transparent);
 		QPainter painter(&pixmap);
-		paint(&painter, QRect(QPoint(0, 0), size), mode, state);
+		draw(&painter, QRect(QPoint(0, 0), size), mode, state);
 		return pixmap;
 	}
 
 	QIconEngine *clone() const override
 	{
-		return new BadgeIconEngine(m_base, m_text);
+		return new BadgeIconEngine(m_base, m_text, m_dimmed, m_shrink);
 	}
 
 private:
 	QIcon   m_base;
 	QString m_text;
+	bool    m_dimmed;
+	bool    m_shrink;
+
+	/* Dimmed, the icon looks as the theme's disabled icons do, the drives'
+	 * among them, and the label as the style dims a picture */
+	void draw(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state)
+	{
+		const bool dimmed = m_dimmed || mode == QIcon::Disabled;
+		/* Shrunk, the icon is a little smaller, up and left, so the label
+		 * leaves it recognisable; a theme may draw it from another size's
+		 * design then. In a wider rectangle it keeps to the left. */
+		const int side = m_shrink ? rect.height() * 13 / 16 : rect.height();
+		m_base.paint(painter, QRect(rect.topLeft(), QSize(side, side)), Qt::AlignCenter,
+		             dimmed ? QIcon::Disabled : mode, state);
+		if (!dimmed) {
+			drawLabel(painter, rect);
+			return;
+		}
+		const qreal scale = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+		QPixmap label(rect.size() * scale);
+		label.setDevicePixelRatio(scale);
+		label.fill(Qt::transparent);
+		QPainter labelPainter(&label);
+		labelPainter.setFont(painter->font());
+		drawLabel(&labelPainter, QRect(QPoint(0, 0), rect.size()));
+		labelPainter.end();
+		QStyleOption option;
+		option.palette = QApplication::palette();
+		QPixmap grey = QApplication::style()->generatedIconPixmap(QIcon::Disabled, label, &option);
+		grey.setDevicePixelRatio(scale);
+		painter->drawPixmap(rect.topLeft(), grey);
+	}
+
+	void drawLabel(QPainter *painter, const QRect &rect)
+	{
+		painter->save();
+		painter->setRenderHint(QPainter::Antialiasing);
+		QFont font = painter->font();
+		font.setBold(true);
+		font.setPixelSize(qMax(6, rect.height() / 2));
+		/* Smaller for a text that would not fit across the icon */
+		const qreal room = rect.width() - rect.height() / 8.0;
+		const qreal advance = QFontMetricsF(font).horizontalAdvance(m_text);
+		if (advance > room) {
+			font.setPixelSize(qMax(4, int(font.pixelSize() * room / advance)));
+		}
+		painter->setFont(font);
+		const QFontMetricsF fm(font);
+		const qreal h = fm.capHeight() + rect.height() / 8.0;
+		const qreal w = qMin<qreal>(rect.width(), fm.horizontalAdvance(m_text) + rect.height() / 8.0);
+		const QRectF label(rect.right() + 1 - w, rect.bottom() + 1 - h, w, h);
+		painter->setPen(Qt::NoPen);
+		painter->setBrush(QColor(0, 0, 0, 190));
+		painter->drawRoundedRect(label, h * 0.25, h * 0.25);
+		painter->setPen(Qt::white);
+		painter->drawText(label, Qt::AlignCenter, m_text);
+		painter->restore();
+	}
 };
 
 } // namespace
 
-QIcon badgeIcon(const QIcon &base, const QString &text)
+QIcon badgeIcon(const QIcon &base, const QString &text, bool dimmed, bool shrink)
 {
-	return QIcon(new BadgeIconEngine(base, text));
+	return QIcon(new BadgeIconEngine(base, text, dimmed, shrink));
 }
