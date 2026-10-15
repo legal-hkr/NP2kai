@@ -46,6 +46,7 @@
 #include <wab/wab.h>
 #endif
 
+#include <QComboBox>
 #include <QGuiApplication>
 #include <QMessageBox>
 #include <QScreen>
@@ -81,6 +82,17 @@ PrefDialog::PrefDialog(QWidget *parent)
 	addPage(new DipswPage, tr("DIP Switches"));
 	addPage(new CalendarPage, tr("Calendar"));
 	addPage(new MiscPage, tr("Misc"));
+
+	/* Lists filled in code got their size while still empty when a layout
+	 * asked early (setupUi() showing a page's first tab does), and kept it:
+	 * the same ports came out wider on one tab than on the other. A combo
+	 * box forgets its sizes on a style change. */
+	for (PrefPage *page : std::as_const(m_pages)) {
+		for (QComboBox *combo : page->findChildren<QComboBox *>()) {
+			QEvent styleChange(QEvent::StyleChange);
+			QCoreApplication::sendEvent(combo, &styleChange);
+		}
+	}
 
 	/* The list as wide as its longest name */
 	m_ui->pageList->setFixedWidth(m_ui->pageList->sizeHintForColumn(0)
