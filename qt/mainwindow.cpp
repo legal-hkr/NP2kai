@@ -218,8 +218,7 @@ void MainWindow::buildMenus()
 	m_actStartPause = emu->addAction(tr("&Pause"), this, &MainWindow::startPause);
 	shortcut(m_actStartPause, QKeySequence(Qt::Key_F5));
 	emu->addAction(tr("&Reset"), this, &MainWindow::reset);
-
-	QMenu *speed = emu->addMenu(tr("&Emulation Speed"));
+	QMenu *speed = emu->addMenu(tr("Spee&d"));
 	auto *speedGroup = new QActionGroup(this);
 	/* A speed set elsewhere may match none of them */
 	speedGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
@@ -230,75 +229,53 @@ void MainWindow::buildMenus()
 		speedGroup->addAction(m_actSpeed[i]);
 	}
 	emu->addSeparator();
-
-	QMenu *slot = emu->addMenu(tr("State &Slot"));
+	shortcut(emu->addAction(tr("&Save State"), this, &MainWindow::saveState), QKeySequence(Qt::Key_F8));
+	m_actLoadState = emu->addAction(tr("&Load State"), this, &MainWindow::loadState);
+	shortcut(m_actLoadState, QKeySequence(Qt::Key_F7));
+	QMenu *slot = emu->addMenu(tr("State Sl&ot"));
 	auto *slotGroup = new QActionGroup(this);
 	for (int i = 0; i < 10; i++) {
 		m_actSlot[i] = slot->addAction(tr("Slot &%1").arg(i), this, [this, i]() { setStateSlot(i); });
 		m_actSlot[i]->setCheckable(true);
 		slotGroup->addAction(m_actSlot[i]);
 	}
-	m_actLoadState = emu->addAction(tr("&Load State"), this, &MainWindow::loadState);
-	shortcut(m_actLoadState, QKeySequence(Qt::Key_F7));
-	shortcut(emu->addAction(tr("&Save State"), this, &MainWindow::saveState), QKeySequence(Qt::Key_F8));
-	emu->addSeparator();
-	emu->addAction(tr("New &FD Image..."), this, [this]() { DiskCreator::newFdImage(this); });
-	emu->addAction(tr("New &HD Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 	emu->addSeparator();
 	shortcut(emu->addAction(tr("Pr&eferences..."), this, &MainWindow::openPreferences),
 	         QKeySequence(Qt::CTRL | Qt::Key_P));
 	emu->addSeparator();
 	shortcut(emu->addAction(tr("E&xit"), this, &QWidget::close), QKeySequence::Quit);
 
+	/* One menu per kind of drive, for quick access; a new image is made
+	 * where it will be inserted */
 	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
 	for (int drv = 0; drv < 4; drv++) {
 		m_fdMenu[drv] = fdd->addMenu(tr("FD &%1").arg(drv + 1));
-		m_fdMenu[drv]->addAction(tr("&Open/Change Image..."), this, [this, drv]() { openFd(drv); });
+		m_fdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openFd(drv); });
 		m_fdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectFd(drv); });
 	}
+	fdd->addSeparator();
+	fdd->addAction(tr("&New Floppy Image..."), this, [this]() { DiskCreator::newFdImage(this); });
 
-	QMenu *hdd = menuBar()->addMenu(tr("&HDD"));
+	QMenu *hdd = menuBar()->addMenu(tr("H&DD"));
 	for (int drv = 0; drv < 4; drv++) {
 		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
-		m_hdMenu[drv]->addAction(tr("&Open/Change Image..."), this, [this, drv]() { openHd(drv); });
+		m_hdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openHd(drv); });
 		m_hdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectHd(drv); });
 	}
+	hdd->addSeparator();
+	hdd->addAction(tr("&New Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 
 	QMenu *cd = menuBar()->addMenu(tr("&CD"));
 	m_cdMenu = cd->addMenu(tr("&CD-ROM"));
-	m_cdMenu->addAction(tr("&Open/Mount Image..."), this, &MainWindow::openCd);
+	m_cdMenu->addAction(tr("&Open Image..."), this, &MainWindow::openCd);
 	m_cdMenu->addAction(tr("&Eject"), this, &MainWindow::ejectCd);
 
-	QMenu *disp = menuBar()->addMenu(tr("&Display"));
-	m_actFullScreen = disp->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
+	QMenu *view = menuBar()->addMenu(tr("&View"));
+	m_actFullScreen = view->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
 	m_actFullScreen->setCheckable(true);
 	m_actFullScreen->setShortcuts({ QKeySequence(Qt::ALT | Qt::Key_Enter), QKeySequence(Qt::ALT | Qt::Key_Return) });
 	addAction(m_actFullScreen);
-	m_actPixelPerfect = disp->addAction(tr("&Pixel-perfect"), this, &MainWindow::setPixelPerfect);
-	m_actPixelPerfect->setCheckable(true);
-	m_actPixelPerfect->setStatusTip(tr("Enlarge the PC-98 pixels by whole multiples only, mostly seen in full screen"));
-	m_actForce43 = disp->addAction(tr("Force &4:3 aspect ratio"), this, &MainWindow::setForce43);
-	m_actForce43->setCheckable(true);
-	m_actForce43->setStatusTip(tr("Stretch the screen to 4:3, as a CRT showed 640x400"));
-	disp->addSeparator();
-
-	/* Menu order and labels as in the wx port */
-	QMenu *rotate = disp->addMenu(tr("&Rotate"));
-	auto *rotateGroup = new QActionGroup(this);
-	const QString rotateLabels[4] = {
-		tr("&Normal"), tr("&Left rotated"), tr("&180 rotated"), tr("&Right rotated"),
-	};
-	for (int i = 0; i < 4; i++) {
-		m_actRotate[i] = rotate->addAction(rotateLabels[i], this, [this, i]() { setRotation(i); });
-		m_actRotate[i]->setCheckable(true);
-		rotateGroup->addAction(m_actRotate[i]);
-	}
-	disp->addSeparator();
-	m_actKeyDisp = disp->addAction(tr("&Key Display"), this, &MainWindow::showKeyDisp);
-	m_actKeyDisp->setCheckable(true);
-	m_actKeyDisp->setStatusTip(tr("Show the notes the FM and MIDI channels play"));
-
-	QMenu *size = disp->addMenu(tr("&Screen Size"));
+	QMenu *size = view->addMenu(tr("&Window Size"));
 	auto *sizeGroup = new QActionGroup(this);
 	/* A window sized by hand is none of them */
 	sizeGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
@@ -308,21 +285,39 @@ void MainWindow::buildMenus()
 		sizeGroup->addAction(m_actSize[scale - 1]);
 	}
 	connect(size, &QMenu::aboutToShow, this, &MainWindow::updateSizeMenu);
+	view->addSeparator();
+	m_actPixelPerfect = view->addAction(tr("&Pixel-perfect"), this, &MainWindow::setPixelPerfect);
+	m_actPixelPerfect->setCheckable(true);
+	m_actPixelPerfect->setStatusTip(tr("Enlarge the PC-98 pixels by whole multiples only, mostly seen in full screen"));
+	m_actForce43 = view->addAction(tr("Force &4:3 Aspect Ratio"), this, &MainWindow::setForce43);
+	m_actForce43->setCheckable(true);
+	m_actForce43->setStatusTip(tr("Stretch the screen to 4:3, as a CRT showed 640x400"));
+	/* In the order of the wx port's menu */
+	QMenu *rotate = view->addMenu(tr("&Rotate"));
+	auto *rotateGroup = new QActionGroup(this);
+	const QString rotateLabels[4] = {
+		tr("&Normal"), tr("90\u00b0 &Left"), tr("&180\u00b0"), tr("90\u00b0 &Right"),
+	};
+	for (int i = 0; i < 4; i++) {
+		m_actRotate[i] = rotate->addAction(rotateLabels[i], this, [this, i]() { setRotation(i); });
+		m_actRotate[i]->setCheckable(true);
+		rotateGroup->addAction(m_actRotate[i]);
+	}
 
 	QMenu *input = menuBar()->addMenu(tr("&Input"));
-	input->addAction(tr("Send Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel)
-	    ->setStatusTip(tr("Send hardware reset sequence"));
-	QAction *paste = input->addAction(tr("Paste Clipboard Text"), this, &MainWindow::pasteText);
+	QAction *paste = input->addAction(tr("&Paste Text"), this, &MainWindow::pasteText);
 	paste->setStatusTip(tr("Type the text from the clipboard on the PC-98 keyboard"));
 	shortcut(paste, QKeySequence(Qt::CTRL | Qt::Key_V));
+	input->addAction(tr("Send &Ctrl+Alt+Del"), this, &MainWindow::sendCtrlAltDel)
+	    ->setStatusTip(tr("Send hardware reset sequence"));
 
-	QMenu *other = menuBar()->addMenu(tr("&Other"));
-	QAction *copy = other->addAction(tr("&Copy Screen"), this, &MainWindow::copyScreen);
+	QMenu *tools = menuBar()->addMenu(tr("&Tools"));
+	QAction *copy = tools->addAction(tr("&Copy Screen"), this, &MainWindow::copyScreen);
 	copy->setStatusTip(tr("Copy screen to clipboard"));
 	shortcut(copy, QKeySequence(Qt::CTRL | Qt::Key_C));
-	other->addAction(tr("&PNG Save..."), this, &MainWindow::savePng)
+	tools->addAction(tr("&Save Screenshot..."), this, &MainWindow::savePng)
 	    ->setStatusTip(tr("Save screen as PNG image"));
-	m_actCycleShot = other->addAction(tr("C&ycle Screenshot..."), this, [this](bool on) {
+	m_actCycleShot = tools->addAction(tr("Peri&odic Screenshot..."), this, [this](bool on) {
 		if (on) {
 			CycleShotDialog dialog(this);
 			if (dialog.exec() != QDialog::Accepted) {
@@ -333,12 +328,17 @@ void MainWindow::buildMenus()
 	});
 	m_actCycleShot->setCheckable(true);
 	m_actCycleShot->setStatusTip(tr("Periodically save screenshots to a file"));
-	m_actTextHook = other->addAction(tr("&Text ROM Hook"), this, &MainWindow::setTextHook);
+	tools->addSeparator();
+	m_actTextHook = tools->addAction(tr("&Text ROM Hook"), this, &MainWindow::setTextHook);
 	m_actTextHook->setCheckable(true);
 	m_actTextHook->setStatusTip(tr("Write the text read from the font ROM to %1")
 	    .arg(QStringLiteral(HF_FILENAME)));
-	other->addSeparator();
-	other->addAction(tr("&About..."), this, &MainWindow::about);
+	m_actKeyDisp = tools->addAction(tr("&Key Display"), this, &MainWindow::showKeyDisp);
+	m_actKeyDisp->setCheckable(true);
+	m_actKeyDisp->setStatusTip(tr("Show the notes the FM and MIDI channels play"));
+
+	QMenu *help = menuBar()->addMenu(tr("&Help"));
+	help->addAction(tr("&About %1...").arg(QStringLiteral(NP2_WX_APPNAME)), this, &MainWindow::about);
 
 	/* Menus take keyboard focus; give it back to the screen afterwards */
 	for (QAction *a : menuBar()->actions()) {
@@ -970,7 +970,7 @@ void MainWindow::savePng()
 		return;
 	}
 	const QString dir = bmpfilefolder[0] ? QFile::decodeName(bmpfilefolder) : QDir::homePath();
-	QString path = QFileDialog::getSaveFileName(this, tr("PNG Save"),
+	QString path = QFileDialog::getSaveFileName(this, tr("Save Screenshot"),
 	    QDir(dir).filePath(QStringLiteral("screen.png")), tr("PNG images (*.png)"));
 	if (path.isEmpty()) {
 		return;
@@ -981,7 +981,7 @@ void MainWindow::savePng()
 	storePath(bmpfilefolder, QFileInfo(path).absolutePath());
 	sysmng_update(SYS_UPDATEOSCFG);
 	if (!image.save(path, "PNG")) {
-		QMessageBox::warning(this, tr("PNG Save"),
+		QMessageBox::warning(this, tr("Save Screenshot"),
 		    tr("Could not save\n%1").arg(QDir::toNativeSeparators(path)));
 	}
 }
@@ -1008,7 +1008,7 @@ void MainWindow::cycleShot()
 	QSaveFile file(QFile::decodeName(cycle_shot_path));
 	if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "PNG") || !file.commit()) {
 		setCycleShot(false);
-		statusBar()->showMessage(tr("Cycle screenshot stopped: could not write %1")
+		statusBar()->showMessage(tr("Periodic screenshot stopped: could not write %1")
 		    .arg(QDir::toNativeSeparators(file.fileName())));
 	}
 }

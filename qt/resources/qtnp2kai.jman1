@@ -25,9 +25,9 @@
 は NEC PC-9801 シリーズのエミュレータ NP2kai の Qt 6 版フロントエンドです。Wayland ではマウスポインタをウィンドウ内にロックして動作し、X11 でも動作します。
 .PP
 メニューのショートカットキーはマウスが取り込まれていない間だけ有効です。PC-98 がマウスを取り込んでいる間は、Alt+Enter、F11、F12 を除くすべてのキーが PC-98 に送られます。フロッピーディスク、ハードディスク、CD-ROM のイメージはメニューから交換します。新しいイメージは
-.B Emulate > New FD Image
+.B FDD > New Floppy Image
 と
-.B New HD Image
+.B HDD > New Hard Disk Image
 で作成します。
 .SH オプション
 .TP
@@ -91,7 +91,7 @@ YM2608 リズム音源のサンプル (バスドラム、スネアドラム、�
 レジュームが有効なとき、終了時に保存し起動時に復元するステート。
 .TP
 .I hook_fontrom.txt
-.B Other > Text ROM Hook
+.B Tools > Text ROM Hook
 が有効な間にフォント ROM から読み取ったテキスト。
 .SH 作者
 Yui \- Neko Project II の開発者。

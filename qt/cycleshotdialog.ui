@@ -3,7 +3,7 @@
  <class>CycleShotDialog</class>
  <widget class="QDialog" name="CycleShotDialog">
   <property name="windowTitle">
-   <string>Cycle Screenshot</string>
+   <string>Periodic Screenshot</string>
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <item>

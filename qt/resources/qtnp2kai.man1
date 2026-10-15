@@ -24,9 +24,9 @@
 is the Qt 6 frontend of NP2kai, an emulator of the NEC PC-9801 series. It runs under Wayland, where it locks the pointer to the window, and under X11.
 .PP
 The menu shortcuts work while the mouse is free; once the PC-98 has captured it, every key goes to the PC-98, except Alt+Enter, F11 and F12. Floppy, hard disk and CD-ROM images are changed from the menus; new images are made with
-.B Emulate > New FD Image
+.B FDD > New Floppy Image
 and
-.BR "New HD Image" .
+.BR "HDD > New Hard Disk Image" .
 .SH OPTIONS
 .TP
 .BI \-c " file" "\fR, \fP\-\-config " file
@@ -90,7 +90,7 @@ State saved on exit and restored on start when Resume is set.
 .TP
 .I hook_fontrom.txt
 Text read from the font ROM while
-.B Other > Text ROM Hook
+.B Tools > Text ROM Hook
 is on.
 .SH AUTHORS
 Yui, the main developer of Neko Project II.
