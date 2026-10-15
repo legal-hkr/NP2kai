@@ -36,6 +36,44 @@ $ ./wxnp21kai
 - Windows, macOS (Coming soon)
 
 
+### Qt port (walk-through)
+
+- Ubuntu
+
+``` bash
+$ sudo apt install build-essential cmake libsdl3-dev libsdl3-ttf-dev libtomlplusplus-dev libcdio-dev libusb-1.0-0-dev qt6-base-dev qt6-base-private-dev qt6-svg-dev libwayland-dev wayland-protocols
+
+$ cd ~
+$ git clone https://github.com/AZO234/NP2kai.git
+$ cd NP2kai
+$ cmake -S . -B build_qt -DBUILD_QT=ON -DBUILD_WX=OFF -DBUILD_SDL=OFF -DUSE_NETWORK=ON && cmake --build build_qt -j4
+$ cd build_qt
+$ ./qtnp21kai
+```
+
+- Install (any build type; program, desktop entry, icon and man pages)
+
+``` bash
+$ sudo cmake --install build_qt
+```
+
+- CMake options of Qt port (*=default)
+
+|name|value|work|output|
+|:---:|:---:|:---:|:---:|
+|BUILD_QT|ON|Build Qt port (Qt 6.5 or later)||
+|USE_WAYLAND|AUTO*|Lock the pointer under Wayland when wayland-client, wayland-protocols, wayland-scanner and Qt's private Gui headers are found||
+|USE_WAYLAND|ON|Same, failing when one is missing||
+|USE_WAYLAND|OFF|No pointer lock; the pointer stops at the window edge under Wayland||
+|BUILD_I286|ON|Build i286|qtnp2kai|
+|BUILD_I286|OFF*|Build IA-32|qtnp21kai|
+
+- Locate BIOS files to `~/.config/qtnp21kai` (`~/.config/qtnp2kai` for i286).
+- Settings are in Emulate > Preferences, new disk images are made from the FDD and HDD menus.
+- The left mouse button captures the mouse for the PC-98, the middle button releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
+- Runs under Wayland and X11 (`QT_QPA_PLATFORM=xcb`).
+
+
 ### libretro core
 
 <details><summary>
