@@ -777,8 +777,6 @@ void MainWindow::buildStatusBar()
 	connect(m_volButton, &QToolButton::clicked, this, &MainWindow::toggleMute);
 	connect(m_volButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupVolume);
 	m_speedButton = makeButton();
-	m_speedButton->setIcon(QIcon::fromTheme(QStringLiteral("media-seek-forward"),
-	                                        style()->standardIcon(QStyle::SP_MediaSeekForward)));
 	connect(m_speedButton, &QToolButton::clicked, this, &MainWindow::toggleSpeed);
 	connect(m_speedButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupSpeed);
 }
@@ -796,6 +794,11 @@ void MainWindow::updateStatusBar()
 	    ? QIcon::fromTheme(QStringLiteral("audio-volume-muted"), style()->standardIcon(QStyle::SP_MediaVolumeMuted))
 	    : QIcon::fromTheme(QStringLiteral("audio-volume-high"), style()->standardIcon(QStyle::SP_MediaVolume)));
 	m_volButton->setToolTip(tr("Vol: %1").arg(np2cfg.vol_master));
+	/* Play at the normal speed, fast forward at any other: the speed shows
+	 * without the tooltip */
+	m_speedButton->setIcon((np2cfg.emuspeed == 100)
+	    ? QIcon::fromTheme(QStringLiteral("media-playback-start"), style()->standardIcon(QStyle::SP_MediaPlay))
+	    : QIcon::fromTheme(QStringLiteral("media-seek-forward"), style()->standardIcon(QStyle::SP_MediaSeekForward)));
 	m_speedButton->setToolTip(tr("Speed: %1").arg(speedLabel(np2cfg.emuspeed)));
 }
 
