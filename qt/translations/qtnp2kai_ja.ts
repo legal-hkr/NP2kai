@@ -862,6 +862,15 @@
         <translation>%1 のバージョン情報(&amp;A)...</translation>
     </message>
     <message>
+        <source>&amp;Eject %1</source>
+        <translation>取り出し(&amp;E): %1</translation>
+    </message>
+    <message>
+        <source>&amp;Eject %1</source>
+        <comment>hard disk</comment>
+        <translation>取り外し(&amp;E): %1</translation>
+    </message>
+    <message>
         <source>CD-ROM &amp;%1</source>
         <translation>CD-ROM &amp;%1</translation>
     </message>

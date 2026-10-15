@@ -265,7 +265,7 @@ void MainWindow::buildMenus()
 	for (int drv = 0; drv < 4; drv++) {
 		m_fdMenu[drv] = fdd->addMenu(tr("FD &%1").arg(drv + 1));
 		m_fdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openFd(drv); });
-		m_fdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectFd(drv); });
+		m_actFdEject[drv] = m_fdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectFd(drv); });
 	}
 	fdd->addSeparator();
 	fdd->addAction(tr("&New Floppy Image..."), this, [this]() { DiskCreator::newFdImage(this); });
@@ -274,12 +274,13 @@ void MainWindow::buildMenus()
 	QMenu *hdd = menuBar()->addMenu(tr("H&DD"));
 	for (int drv = 0; drv < 4; drv++) {
 		m_hdMenu[drv] = nullptr;
+		m_actHdEject[drv] = nullptr;
 		if (drv >= hdSlots()) {
 			continue;
 		}
 		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
 		m_hdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openHd(drv); });
-		m_hdMenu[drv]->addAction(tr("&Eject", "hard disk"), this, [this, drv]() { ejectHd(drv); });
+		m_actHdEject[drv] = m_hdMenu[drv]->addAction(tr("&Eject", "hard disk"), this, [this, drv]() { ejectHd(drv); });
 	}
 	hdd->addSeparator();
 	hdd->addAction(tr("&New Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });
@@ -288,7 +289,7 @@ void MainWindow::buildMenus()
 	for (int drv = 0; drv < 4; drv++) {
 		m_cdMenu[drv] = m_cdTop->addMenu(tr("&CD-ROM"));
 		m_cdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openCd(drv); });
-		m_cdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectCd(drv); });
+		m_actCdEject[drv] = m_cdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectCd(drv); });
 	}
 	m_actNoCd = m_cdTop->addAction(tr("No CD-ROM drive"));
 	m_actNoCd->setEnabled(false);
@@ -399,12 +400,26 @@ static int rotationIndex()
 	return 0;
 }
 
-static QString withFileName(const QString &label, const OEMCHAR *path)
+/* The image's name for a menu: a long one shortened in the middle, so its
+ * extension stays, and its & not taken for a mnemonic */
+static QString menuFileName(const OEMCHAR *path)
 {
 	if (!path || !path[0]) {
-		return label;
+		return QString();
 	}
-	return label + QStringLiteral(": ") + QString::fromUtf8(file_getname(const_cast<OEMCHAR *>(path)));
+	QString name = QString::fromUtf8(file_getname(const_cast<OEMCHAR *>(path)));
+	const int kMax = 32;
+	if (name.size() > kMax) {
+		const int tail = 12;
+		name = name.left(kMax - tail - 1) + QChar(0x2026) + name.right(tail);
+	}
+	return name.replace(QLatin1Char('&'), QStringLiteral("&&"));
+}
+
+static QString withFileName(const QString &label, const OEMCHAR *path)
+{
+	const QString name = menuFileName(path);
+	return name.isEmpty() ? label : label + QStringLiteral(": ") + name;
 }
 
 void MainWindow::updateMenuStatus()
@@ -414,19 +429,29 @@ void MainWindow::updateMenuStatus()
 		cdCount += isCdSlot(i) ? 1 : 0;
 	}
 	int cdNumber = 0;
+	/* Eject names the image it takes out, as the status bar's menus are
+	 * the same and have no title */
 	for (int i = 0; i < 4; i++) {
 		m_fdMenu[i]->setTitle(withFileName(tr("FD &%1").arg(i + 1), np2cfg.fddfile[i]));
+		const QString fd = menuFileName(np2cfg.fddfile[i]);
+		m_actFdEject[i]->setText(fd.isEmpty() ? tr("&Eject") : tr("&Eject %1").arg(fd));
 		const bool cd = (i < hdSlots()) && isCdSlot(i);
 		if (m_hdMenu[i]) {
+			const OEMCHAR *path = diskdrv_getsxsi(static_cast<REG8>(i));
 			m_hdMenu[i]->menuAction()->setVisible(!cd);
-			m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), diskdrv_getsxsi(static_cast<REG8>(i))));
+			m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), path));
+			const QString hd = menuFileName(path);
+			m_actHdEject[i]->setText(hd.isEmpty() ? tr("&Eject", "hard disk") : tr("&Eject %1", "hard disk").arg(hd));
 		}
 		m_cdMenu[i]->menuAction()->setVisible(cd);
 		if (cd) {
 			/* Numbered only when there is more than one */
 			cdNumber++;
 			const QString label = (cdCount == 1) ? tr("&CD-ROM") : tr("CD-ROM &%1").arg(cdNumber);
-			m_cdMenu[i]->setTitle(withFileName(label, sxsi_getfilename(static_cast<REG8>(i))));
+			const OEMCHAR *path = sxsi_getfilename(static_cast<REG8>(i));
+			m_cdMenu[i]->setTitle(withFileName(label, path));
+			const QString disc = menuFileName(path);
+			m_actCdEject[i]->setText(disc.isEmpty() ? tr("&Eject") : tr("&Eject %1").arg(disc));
 		}
 	}
 	m_actNoCd->setVisible(cdCount == 0);

@@ -862,6 +862,15 @@
         <translation>&amp;O programie %1...</translation>
     </message>
     <message>
+        <source>&amp;Eject %1</source>
+        <translation>&amp;Wysuń %1</translation>
+    </message>
+    <message>
+        <source>&amp;Eject %1</source>
+        <comment>hard disk</comment>
+        <translation>&amp;Odłącz %1</translation>
+    </message>
+    <message>
         <source>CD-ROM &amp;%1</source>
         <translation>CD-ROM &amp;%1</translation>
     </message>

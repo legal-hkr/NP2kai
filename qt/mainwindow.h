@@ -70,6 +70,9 @@ private:
 	QMenu   *m_fdMenu[4];
 	QMenu   *m_hdMenu[4];   /* the slots beyond hdSlots() stay null */
 	QMenu   *m_cdMenu[4];
+	QAction *m_actFdEject[4];   /* named after the image in the drive */
+	QAction *m_actHdEject[4];
+	QAction *m_actCdEject[4];
 	QMenu   *m_cdTop;
 	QAction *m_actNoCd;
 
