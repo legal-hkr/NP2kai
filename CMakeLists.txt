@@ -346,6 +346,7 @@ list(APPEND NP2kai_QT_sources
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtkbtrans.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/qtmsgbox.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/keydispwindow.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/qt/statusindicators.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/cycleshotdialog.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/cycleshotdialog.ui"
 	"${CMAKE_CURRENT_SOURCE_DIR}/qt/newdisk/diskcreator.cpp"
@@ -674,7 +675,7 @@ if(NOT CMAKE_CROSSCOMPILING)
 
 	# Qt6 (the Qt port reuses the toolkit-independent sources of wx/)
 	if(BUILD_QT)
-		find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets)
+		find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets)
 		message("-- Found: Qt6 (" ${Qt6_VERSION} ")")
 
 		# Wayland pointer locking: libwayland, the protocol files and Qt's private Gui headers
@@ -1062,7 +1063,7 @@ else()
 		add_library(NP2kai_QT_base INTERFACE)
 		target_sources(NP2kai_QT_base INTERFACE ${NP2kai_QT_sources} ${NP2kai_TickCount_sources} ${NP2kai_Network_sources})
 		# Same feature set as the wx port, whose toolkit-independent files it builds
-		target_compile_definitions(NP2kai_QT_base INTERFACE ${NP2kai_WX_definitions} ${NP2kai_extra_definitions} ${NP2kai_TickCount_definitions} ${NP2kai_Network_definitions} ${libcdio_definitions} "QT_NO_KEYWORDS" "QT_DISABLE_DEPRECATED_UP_TO=0x060500")
+		target_compile_definitions(NP2kai_QT_base INTERFACE ${NP2kai_WX_definitions} ${NP2kai_extra_definitions} ${NP2kai_TickCount_definitions} ${NP2kai_Network_definitions} ${libcdio_definitions} "QT_NO_KEYWORDS" "QT_DISABLE_DEPRECATED_UP_TO=0x060800")
 		# qt/ before wx/: qt/compiler.h replaces wx/compiler.h, every other header comes from wx/
 		target_include_directories(NP2kai_QT_base INTERFACE ${NP2kai_QT_include_dirs} ${lib_tomlplusplus_include_dirs} ${LIBCDIO_INCLUDE_DIRS})
 		target_link_libraries(NP2kai_QT_base INTERFACE ${lib_math_libraries} Qt6::Widgets ${lib_tomlplusplus_libraries} SDL3::SDL3 SDL3_ttf::SDL3_ttf ${LIBCDIO_LINK_LIBRARIES} ${lib_dl_libraries})
@@ -1589,14 +1590,11 @@ else()
 			# target refreshes the .ts files after the strings change.
 			set(NP2kai_QT_tr_sources ${NP2kai_QT_sources})
 			list(FILTER NP2kai_QT_tr_sources INCLUDE REGEX "/qt/.*\\.(cpp|ui)$")
-			qt_add_translations(qtnp21kai
+			qt_add_translations(TARGETS qtnp2kai qtnp21kai
 				TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_de.ts" "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_ja.ts" "${CMAKE_CURRENT_SOURCE_DIR}/qt/translations/qtnp2kai_pl.ts"
 				SOURCES ${NP2kai_QT_tr_sources}
 				LUPDATE_OPTIONS -no-obsolete -locations none
-				QM_FILES_OUTPUT_VARIABLE NP2kai_QT_qm_files)
-			foreach(NP2kai_QT_NAME qtnp2kai qtnp21kai)
-				qt_add_resources(${NP2kai_QT_NAME} "translations" PREFIX "/i18n" BASE "${CMAKE_CURRENT_BINARY_DIR}" FILES ${NP2kai_QT_qm_files})
-			endforeach()
+				RESOURCE_PREFIX "/i18n")
 		endif()
 
 		# One English and one Japanese man page for both programs, filled in

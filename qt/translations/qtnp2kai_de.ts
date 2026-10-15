@@ -730,6 +730,10 @@
         <translation>&amp;CD-ROM</translation>
     </message>
     <message>
+        <source>No CD-ROM drive</source>
+        <translation>Kein CD-ROM-Laufwerk</translation>
+    </message>
+    <message>
         <source>&amp;View</source>
         <translation>&amp;Ansicht</translation>
     </message>
@@ -858,6 +862,10 @@
         <translation>&amp;Über %1...</translation>
     </message>
     <message>
+        <source>CD-ROM &amp;%1</source>
+        <translation>CD-ROM &amp;%1</translation>
+    </message>
+    <message>
         <source>&amp;Start</source>
         <translation>&amp;Fortsetzen</translation>
     </message>
@@ -890,10 +898,6 @@
         <translation>CD-ROM</translation>
     </message>
     <message>
-        <source>No CD-ROM drive configured.</source>
-        <translation>Kein CD-ROM-Laufwerk eingerichtet.</translation>
-    </message>
-    <message>
         <source>Mount CD Image</source>
         <translation>CD-Abbild einlegen</translation>
     </message>
@@ -906,14 +910,6 @@
 %1</source>
         <translation>Das CD-Abbild konnte nicht geöffnet werden:
 %1</translation>
-    </message>
-    <message>
-        <source>Press F12 or MMB to release the mouse</source>
-        <translation>F12 oder mittlere Maustaste drücken, um die Maus freizugeben</translation>
-    </message>
-    <message>
-        <source>Press MMB to release the mouse</source>
-        <translation>Mittlere Maustaste drücken, um die Maus freizugeben</translation>
     </message>
     <message>
         <source>Vol: %1</source>
@@ -1728,6 +1724,65 @@ Abbild trotzdem erstellen?</translation>
     <message>
         <source>Other (%1h)</source>
         <translation>Andere (%1h)</translation>
+    </message>
+</context>
+<context>
+    <name>StatusIndicators</name>
+    <message>
+        <source>Caps Lock</source>
+        <translation>Feststelltaste</translation>
+    </message>
+    <message>
+        <source>Kana Lock</source>
+        <translation>Kana-Feststellung</translation>
+    </message>
+    <message>
+        <source>FD%1: %2</source>
+        <translation>FD%1: %2</translation>
+    </message>
+    <message>
+        <source>FD%1: no disk</source>
+        <translation>FD%1: keine Diskette</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): %2</source>
+        <translation>HD%1 (CD-ROM): %2</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): no disc</source>
+        <translation>HD%1 (CD-ROM): keine CD</translation>
+    </message>
+    <message>
+        <source>HD%1: %2</source>
+        <translation>HD%1: %2</translation>
+    </message>
+    <message>
+        <source>HD%1: no disk</source>
+        <translation>HD%1: keine Festplatte</translation>
+    </message>
+    <message>
+        <source>Network (LGY-98)</source>
+        <translation>Netzwerk (LGY-98)</translation>
+    </message>
+    <message>
+        <source>Click the screen to capture the mouse</source>
+        <translation>Auf den Bildschirm klicken, um die Maus zu fangen</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>F12 oder mittlere Maustaste drücken, um die Maus freizugeben</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>Mittlere Maustaste drücken, um die Maus freizugeben</translation>
+    </message>
+    <message>
+        <source>F12, MMB</source>
+        <translation>F12, Mittelklick</translation>
+    </message>
+    <message>
+        <source>MMB</source>
+        <translation>Mittelklick</translation>
     </message>
 </context>
 <context>

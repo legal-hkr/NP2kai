@@ -10,11 +10,11 @@
 
 class QAction;
 class QActionGroup;
-class QLabel;
 class QMenu;
 class QToolButton;
 class KeyDispWindow;
 class ScreenWidget;
+class StatusIndicators;
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +25,11 @@ public:
 	~MainWindow() override;
 
 	ScreenWidget *screen() const { return m_screen; }
+
+	/* Drive slots: 4 IDE (IA-32) or 2 SASI (i286); an IDE slot holds a hard
+	 * disk or a CD-ROM drive, as set in the preferences */
+	static int hdSlots();
+	static bool isCdSlot(int slot);
 
 	/* Pause and resume around anything modal, as the wx port does */
 	void stopEmulation();
@@ -63,13 +68,15 @@ private:
 	QAction *m_actCycleShot;
 	QAction *m_actTextHook;
 	QMenu   *m_fdMenu[4];
-	QMenu   *m_hdMenu[4];
-	QMenu   *m_cdMenu;
+	QMenu   *m_hdMenu[4];   /* the slots beyond hdSlots() stay null */
+	QMenu   *m_cdMenu[4];
+	QMenu   *m_cdTop;
+	QAction *m_actNoCd;
 
 	/* Status bar: left click mutes or goes back to x1, right click sets */
 	QToolButton *m_volButton;
 	QToolButton *m_speedButton;
-	QLabel      *m_captureLabel;
+	StatusIndicators *m_indicators;
 	UINT8        m_lastVol;
 	UINT32       m_lastSpeed;
 	int          m_shownVol;     /* what the buttons show, -1 for nothing yet */
@@ -88,8 +95,8 @@ private:
 	void ejectFd(int drv);
 	void openHd(int drv);
 	void ejectHd(int drv);
-	void openCd();
-	void ejectCd();
+	void openCd(int drv);
+	void ejectCd(int drv);
 	void setSpeed(UINT32 speed);
 	void setVolume(UINT8 volume);
 	void toggleMute();

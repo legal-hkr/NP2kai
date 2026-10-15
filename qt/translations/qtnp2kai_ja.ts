@@ -730,6 +730,10 @@
         <translation>CD-ROM(&amp;C)</translation>
     </message>
     <message>
+        <source>No CD-ROM drive</source>
+        <translation>CD-ROM ドライブなし</translation>
+    </message>
+    <message>
         <source>&amp;View</source>
         <translation>表示(&amp;V)</translation>
     </message>
@@ -858,6 +862,10 @@
         <translation>%1 のバージョン情報(&amp;A)...</translation>
     </message>
     <message>
+        <source>CD-ROM &amp;%1</source>
+        <translation>CD-ROM &amp;%1</translation>
+    </message>
+    <message>
         <source>&amp;Start</source>
         <translation>再開(&amp;S)</translation>
     </message>
@@ -890,10 +898,6 @@
         <translation>CD-ROM</translation>
     </message>
     <message>
-        <source>No CD-ROM drive configured.</source>
-        <translation>CD-ROM ドライブが設定されていません。</translation>
-    </message>
-    <message>
         <source>Mount CD Image</source>
         <translation>CD イメージを開く</translation>
     </message>
@@ -906,14 +910,6 @@
 %1</source>
         <translation>CD イメージを開けませんでした:
 %1</translation>
-    </message>
-    <message>
-        <source>Press F12 or MMB to release the mouse</source>
-        <translation>F12 キーか中ボタンでマウスを解放します</translation>
-    </message>
-    <message>
-        <source>Press MMB to release the mouse</source>
-        <translation>中ボタンでマウスを解放します</translation>
     </message>
     <message>
         <source>Vol: %1</source>
@@ -1728,6 +1724,65 @@ Create the image anyway?</source>
     <message>
         <source>Other (%1h)</source>
         <translation>その他 (%1h)</translation>
+    </message>
+</context>
+<context>
+    <name>StatusIndicators</name>
+    <message>
+        <source>Caps Lock</source>
+        <translation>CAPS ロック</translation>
+    </message>
+    <message>
+        <source>Kana Lock</source>
+        <translation>カナロック</translation>
+    </message>
+    <message>
+        <source>FD%1: %2</source>
+        <translation>FD%1: %2</translation>
+    </message>
+    <message>
+        <source>FD%1: no disk</source>
+        <translation>FD%1: ディスクなし</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): %2</source>
+        <translation>HD%1 (CD-ROM): %2</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): no disc</source>
+        <translation>HD%1 (CD-ROM): ディスクなし</translation>
+    </message>
+    <message>
+        <source>HD%1: %2</source>
+        <translation>HD%1: %2</translation>
+    </message>
+    <message>
+        <source>HD%1: no disk</source>
+        <translation>HD%1: ディスクなし</translation>
+    </message>
+    <message>
+        <source>Network (LGY-98)</source>
+        <translation>ネットワーク (LGY-98)</translation>
+    </message>
+    <message>
+        <source>Click the screen to capture the mouse</source>
+        <translation>画面をクリックするとマウスをキャプチャします</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>F12 キーか中ボタンでマウスを解放します</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>中ボタンでマウスを解放します</translation>
+    </message>
+    <message>
+        <source>F12, MMB</source>
+        <translation>F12, 中ボタン</translation>
+    </message>
+    <message>
+        <source>MMB</source>
+        <translation>中ボタン</translation>
     </message>
 </context>
 <context>

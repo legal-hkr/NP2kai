@@ -730,6 +730,10 @@
         <translation>&amp;CD-ROM</translation>
     </message>
     <message>
+        <source>No CD-ROM drive</source>
+        <translation>Brak napędu CD-ROM</translation>
+    </message>
+    <message>
         <source>&amp;View</source>
         <translation>&amp;Widok</translation>
     </message>
@@ -858,6 +862,10 @@
         <translation>&amp;O programie %1...</translation>
     </message>
     <message>
+        <source>CD-ROM &amp;%1</source>
+        <translation>CD-ROM &amp;%1</translation>
+    </message>
+    <message>
         <source>&amp;Start</source>
         <translation>W&amp;znów</translation>
     </message>
@@ -890,10 +898,6 @@
         <translation>CD-ROM</translation>
     </message>
     <message>
-        <source>No CD-ROM drive configured.</source>
-        <translation>Nie skonfigurowano napędu CD-ROM.</translation>
-    </message>
-    <message>
         <source>Mount CD Image</source>
         <translation>Otwórz obraz płyty</translation>
     </message>
@@ -906,14 +910,6 @@
 %1</source>
         <translation>Nie udało się otworzyć obrazu płyty:
 %1</translation>
-    </message>
-    <message>
-        <source>Press F12 or MMB to release the mouse</source>
-        <translation>Naciśnij F12 lub MMB, aby uwolnić mysz</translation>
-    </message>
-    <message>
-        <source>Press MMB to release the mouse</source>
-        <translation>Naciśnij MMB, aby uwolnić mysz</translation>
     </message>
     <message>
         <source>Vol: %1</source>
@@ -1728,6 +1724,65 @@ Utworzyć obraz mimo to?</translation>
     <message>
         <source>Other (%1h)</source>
         <translation>Inny (%1h)</translation>
+    </message>
+</context>
+<context>
+    <name>StatusIndicators</name>
+    <message>
+        <source>Caps Lock</source>
+        <translation>Caps Lock</translation>
+    </message>
+    <message>
+        <source>Kana Lock</source>
+        <translation>Blokada kana</translation>
+    </message>
+    <message>
+        <source>FD%1: %2</source>
+        <translation>FD%1: %2</translation>
+    </message>
+    <message>
+        <source>FD%1: no disk</source>
+        <translation>FD%1: brak dyskietki</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): %2</source>
+        <translation>HD%1 (CD-ROM): %2</translation>
+    </message>
+    <message>
+        <source>HD%1 (CD-ROM): no disc</source>
+        <translation>HD%1 (CD-ROM): brak płyty</translation>
+    </message>
+    <message>
+        <source>HD%1: %2</source>
+        <translation>HD%1: %2</translation>
+    </message>
+    <message>
+        <source>HD%1: no disk</source>
+        <translation>HD%1: brak dysku</translation>
+    </message>
+    <message>
+        <source>Network (LGY-98)</source>
+        <translation>Sieć (LGY-98)</translation>
+    </message>
+    <message>
+        <source>Click the screen to capture the mouse</source>
+        <translation>Kliknij ekran, aby przechwycić mysz</translation>
+    </message>
+    <message>
+        <source>Press F12 or MMB to release the mouse</source>
+        <translation>Naciśnij F12 lub MMB, aby uwolnić mysz</translation>
+    </message>
+    <message>
+        <source>Press MMB to release the mouse</source>
+        <translation>Naciśnij MMB, aby uwolnić mysz</translation>
+    </message>
+    <message>
+        <source>F12, MMB</source>
+        <translation>F12, MMB</translation>
+    </message>
+    <message>
+        <source>MMB</source>
+        <translation>MMB</translation>
     </message>
 </context>
 <context>

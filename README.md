@@ -61,7 +61,7 @@ $ sudo cmake --install build_qt
 
 |name|value|work|output|
 |:---:|:---:|:---:|:---:|
-|BUILD_QT|ON|Build Qt port (Qt 6.5 or later)||
+|BUILD_QT|ON|Build Qt port (Qt 6.8 or later)||
 |USE_WAYLAND|AUTO*|Lock the pointer under Wayland when wayland-client, wayland-protocols, wayland-scanner and Qt's private Gui headers are found||
 |USE_WAYLAND|ON|Same, failing when one is missing||
 |USE_WAYLAND|OFF|No pointer lock; the pointer stops at the window edge under Wayland||
@@ -74,6 +74,7 @@ $ sudo cmake --install build_qt
 - Locate BIOS files to `~/.config/qtnp21kai` (`~/.config/qtnp2kai` for i286).
 - Settings are in Emulate > Preferences, new disk images are made from the FDD and HDD menus.
 - A click with the left mouse button captures the mouse for the PC-98 (the click itself is not passed on), the middle button or F12 releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
+- The status bar shows the floppy drives, the four IDE slots (two SASI drives for i286) with a hard disk or CD-ROM icon as set in the preferences, the network card, the CAPS and カナ locks and the mouse, with the keys that release it lit while it is captured. A drive is dimmed when empty and lights up green while it reads and red while it writes; a click opens its menu.
 - Runs under Wayland and X11 (`QT_QPA_PLATFORM=xcb`).
 - The interface follows the system language: German, Japanese, Polish, or English for any other. `LANGUAGE=en` (or `de`, `ja`, `pl`) picks one for a single run. The standard buttons and file dialogs take their words from Qt's own translations (`qt6-translations-l10n`).
 - Translations are in `qt/translations`. After strings change in the sources, `cmake --build build_qt --target update_translations` refreshes the `.ts` files; new strings are left unfinished for Qt Linguist and show in English until translated.

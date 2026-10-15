@@ -11,6 +11,7 @@
 #include "prefs/prefdialog.h"
 #include "keydispwindow.h"
 #include "cycleshotdialog.h"
+#include "statusindicators.h"
 #include "np2ui.h"
 #include "np2mt.h"
 #include "np2.h"
@@ -39,6 +40,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -100,7 +102,7 @@ MainWindow::MainWindow()
 	, m_running(true)
 	, m_volButton(nullptr)
 	, m_speedButton(nullptr)
-	, m_captureLabel(nullptr)
+	, m_indicators(nullptr)
 	, m_lastVol(np2cfg.vol_master ? np2cfg.vol_master : 100)
 	, m_lastSpeed(np2cfg.emuspeed != 100 ? np2cfg.emuspeed : 200)
 	, m_shownVol(-1)
@@ -111,7 +113,11 @@ MainWindow::MainWindow()
 	connect(&m_cycleShotTimer, &QTimer::timeout, this, &MainWindow::cycleShot);
 	buildStatusBar();
 	buildMenus();
+	m_indicators->setMenus(m_fdMenu, m_hdMenu, m_cdMenu);
 	updateLoadState();
+	/* The core sets the title only when a drive changes; with the drives
+	 * mounted at startup from the beginning */
+	sysmng_updatecaption(SYS_UPDATECAPTION_ALL);
 
 	connect(m_screen, &ScreenWidget::fullScreenToggleRequested, this, &MainWindow::toggleFullScreen);
 	connect(m_screen, &ScreenWidget::menuBarToggleRequested, this, &MainWindow::toggleMenuBar);
@@ -191,6 +197,12 @@ static QString speedLabel(UINT32 speed)
 	return QStringLiteral("x%1").arg(speed / 100.0);
 }
 
+/* Short enough for the corner of an icon */
+static QString speedBadge(UINT32 speed)
+{
+	return (speed == 50) ? QStringLiteral("x\u00bd") : speedLabel(speed);
+}
+
 /* qtnp21kai.s00 to .s09 next to the configuration, as the X and SDL ports name
  * them; wx's "s0" is also the file the resume state goes to. */
 static QString stateExt(int slot)
@@ -258,8 +270,13 @@ void MainWindow::buildMenus()
 	fdd->addSeparator();
 	fdd->addAction(tr("&New Floppy Image..."), this, [this]() { DiskCreator::newFdImage(this); });
 
+	/* Each slot is in the HDD or the CD menu, by the device set in it */
 	QMenu *hdd = menuBar()->addMenu(tr("H&DD"));
 	for (int drv = 0; drv < 4; drv++) {
+		m_hdMenu[drv] = nullptr;
+		if (drv >= hdSlots()) {
+			continue;
+		}
 		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
 		m_hdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openHd(drv); });
 		m_hdMenu[drv]->addAction(tr("&Eject", "hard disk"), this, [this, drv]() { ejectHd(drv); });
@@ -267,10 +284,18 @@ void MainWindow::buildMenus()
 	hdd->addSeparator();
 	hdd->addAction(tr("&New Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 
-	QMenu *cd = menuBar()->addMenu(tr("&CD"));
-	m_cdMenu = cd->addMenu(tr("&CD-ROM"));
-	m_cdMenu->addAction(tr("&Open Image..."), this, &MainWindow::openCd);
-	m_cdMenu->addAction(tr("&Eject"), this, &MainWindow::ejectCd);
+	m_cdTop = menuBar()->addMenu(tr("&CD"));
+	for (int drv = 0; drv < 4; drv++) {
+		m_cdMenu[drv] = m_cdTop->addMenu(tr("&CD-ROM"));
+		m_cdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openCd(drv); });
+		m_cdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectCd(drv); });
+	}
+	m_actNoCd = m_cdTop->addAction(tr("No CD-ROM drive"));
+	m_actNoCd->setEnabled(false);
+#if !defined(SUPPORT_IDEIO)
+	/* SASI has no CD-ROM drives */
+	m_cdTop->menuAction()->setVisible(false);
+#endif
 
 	QMenu *view = menuBar()->addMenu(tr("&View"));
 	m_actFullScreen = view->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
@@ -384,13 +409,27 @@ static QString withFileName(const QString &label, const OEMCHAR *path)
 
 void MainWindow::updateMenuStatus()
 {
+	int cdCount = 0;
+	for (int i = 0; i < hdSlots(); i++) {
+		cdCount += isCdSlot(i) ? 1 : 0;
+	}
+	int cdNumber = 0;
 	for (int i = 0; i < 4; i++) {
 		m_fdMenu[i]->setTitle(withFileName(tr("FD &%1").arg(i + 1), np2cfg.fddfile[i]));
-		m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), diskdrv_getsxsi(static_cast<REG8>(i))));
+		const bool cd = (i < hdSlots()) && isCdSlot(i);
+		if (m_hdMenu[i]) {
+			m_hdMenu[i]->menuAction()->setVisible(!cd);
+			m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), diskdrv_getsxsi(static_cast<REG8>(i))));
+		}
+		m_cdMenu[i]->menuAction()->setVisible(cd);
+		if (cd) {
+			/* Numbered only when there is more than one */
+			cdNumber++;
+			const QString label = (cdCount == 1) ? tr("&CD-ROM") : tr("CD-ROM &%1").arg(cdNumber);
+			m_cdMenu[i]->setTitle(withFileName(label, sxsi_getfilename(static_cast<REG8>(i))));
+		}
 	}
-	const int cd = findCdromDrive();
-	m_cdMenu->setTitle(withFileName(tr("&CD-ROM"),
-	                   cd >= 0 ? sxsi_getfilename(static_cast<REG8>(cd)) : nullptr));
+	m_actNoCd->setVisible(cdCount == 0);
 	m_actFullScreen->setChecked(isFullScreen());
 	m_actPixelPerfect->setChecked(np2oscfg.pixelperfect != 0);
 	m_actForce43->setChecked(np2oscfg.force43 != 0);
@@ -448,6 +487,26 @@ void MainWindow::openPreferences()
 }
 
 /* ---- drives ---- */
+
+int MainWindow::hdSlots()
+{
+#if defined(SUPPORT_IDEIO)
+	return 4;
+#else
+	return 2;
+#endif
+}
+
+/* By the preferences, which the HDD menu also sets */
+bool MainWindow::isCdSlot(int slot)
+{
+#if defined(SUPPORT_IDEIO)
+	return np2cfg.idetype[slot] == SXSIDEV_CDROM;
+#else
+	(void)slot;
+	return false;
+#endif
+}
 
 static QString startDir(const char *folder, const OEMCHAR *current)
 {
@@ -528,13 +587,8 @@ void MainWindow::ejectHd(int drv)
 	startEmulation();
 }
 
-void MainWindow::openCd()
+void MainWindow::openCd(int drv)
 {
-	const int drv = findCdromDrive();
-	if (drv < 0) {
-		QMessageBox::information(this, tr("CD-ROM"), tr("No CD-ROM drive configured."));
-		return;
-	}
 	const OEMCHAR *current = nullptr;
 #if defined(SUPPORT_IDEIO)
 	current = np2cfg.idecd[drv & 0x03];
@@ -563,12 +617,8 @@ void MainWindow::openCd()
 	startEmulation();
 }
 
-void MainWindow::ejectCd()
+void MainWindow::ejectCd(int drv)
 {
-	const int drv = findCdromDrive();
-	if (drv < 0) {
-		return;
-	}
 	stopEmulation();
 	sxsi_devopen(static_cast<REG8>(drv), nullptr);
 #if defined(SUPPORT_IDEIO)
@@ -786,17 +836,24 @@ void MainWindow::pasteText()
 
 void MainWindow::buildStatusBar()
 {
-	/* The left of the bar tells how to get the mouse back while the PC-98
-	 * has it */
-	m_captureLabel = new QLabel(this);
-	statusBar()->addWidget(m_captureLabel, 1);
+	/* As in 86Box: the drives on the left, the volume and the speed right
+	 * after them, the mouse and the lock keys on the right. Messages, such as
+	 * the menus' status tips, show in place of the left group for a moment. */
 	statusBar()->setVisible(np2oscfg.statusbar != 0);
-	auto makeButton = [this]() {
-		auto *button = new QToolButton(this);
+	m_indicators = new StatusIndicators(statusBar(), this);
+	auto *left = new QWidget(this);
+	auto *layout = new QHBoxLayout(left);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	layout->addWidget(m_indicators->drivesWidget());
+	statusBar()->addWidget(left, 1);
+	statusBar()->addPermanentWidget(m_indicators->inputWidget());
+	auto makeButton = [left, layout]() {
+		auto *button = new QToolButton(left);
 		button->setAutoRaise(true);
 		button->setFocusPolicy(Qt::NoFocus);
 		button->setContextMenuPolicy(Qt::CustomContextMenu);
-		statusBar()->addPermanentWidget(button);
+		layout->addWidget(button);
 		return button;
 	};
 	m_volButton = makeButton();
@@ -805,17 +862,12 @@ void MainWindow::buildStatusBar()
 	m_speedButton = makeButton();
 	connect(m_speedButton, &QToolButton::clicked, this, &MainWindow::toggleSpeed);
 	connect(m_speedButton, &QWidget::customContextMenuRequested, this, &MainWindow::popupSpeed);
+	layout->addStretch(1);
 }
 
 void MainWindow::showMouseCapture(bool captured)
 {
-	if (!captured) {
-		m_captureLabel->clear();
-	} else if (np2oscfg.F12KEY == 0) {
-		m_captureLabel->setText(tr("Press F12 or MMB to release the mouse"));
-	} else {
-		m_captureLabel->setText(tr("Press MMB to release the mouse"));
-	}
+	m_indicators->setMouseCaptured(captured);
 }
 
 void MainWindow::updateStatusBar()
@@ -828,14 +880,13 @@ void MainWindow::updateStatusBar()
 	m_shownSpeed = np2cfg.emuspeed;
 	const bool muted = (np2cfg.vol_master == 0);
 	m_volButton->setIcon(muted
-	    ? QIcon::fromTheme(QStringLiteral("audio-volume-muted"), style()->standardIcon(QStyle::SP_MediaVolumeMuted))
-	    : QIcon::fromTheme(QStringLiteral("audio-volume-high"), style()->standardIcon(QStyle::SP_MediaVolume)));
+	    ? QIcon::fromTheme(QIcon::ThemeIcon::AudioVolumeMuted, style()->standardIcon(QStyle::SP_MediaVolumeMuted))
+	    : QIcon::fromTheme(QIcon::ThemeIcon::AudioVolumeHigh, style()->standardIcon(QStyle::SP_MediaVolume)));
 	m_volButton->setToolTip(tr("Vol: %1").arg(np2cfg.vol_master));
-	/* Play at the normal speed, fast forward at any other: the speed shows
-	 * without the tooltip */
-	m_speedButton->setIcon((np2cfg.emuspeed == 100)
-	    ? QIcon::fromTheme(QStringLiteral("media-playback-start"), style()->standardIcon(QStyle::SP_MediaPlay))
-	    : QIcon::fromTheme(QStringLiteral("media-seek-forward"), style()->standardIcon(QStyle::SP_MediaSeekForward)));
+	/* Fast forward with the speed on it, so it shows without the tooltip */
+	m_speedButton->setIcon(badgeIcon(
+	    QIcon::fromTheme(QIcon::ThemeIcon::MediaSeekForward, style()->standardIcon(QStyle::SP_MediaSeekForward)),
+	    speedBadge(np2cfg.emuspeed)));
 	m_speedButton->setToolTip(tr("Speed: %1").arg(speedLabel(np2cfg.emuspeed)));
 }
 

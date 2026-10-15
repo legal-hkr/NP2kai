@@ -158,11 +158,9 @@ void KeyDispWindow::paintEvent(QPaintEvent *)
 /* Moved to a screen with other scaling */
 bool KeyDispWindow::event(QEvent *event)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 	if (event->type() == QEvent::DevicePixelRatioChange && isVisible() && zoom() != m_zoom) {
 		resizeToKeys();
 	}
-#endif
 	return QWidget::event(event);
 }
 
