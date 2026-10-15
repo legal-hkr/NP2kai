@@ -34,6 +34,11 @@ struct KeyMap {
 
 #if defined(__linux__)
 
+/* CAPS and KANA latch on the PC-98 keyboard. The core's key table sends its
+ * entries 0x81 and 0x82 as these locking keys (keystat.c, 0xf1 and 0xf2), so
+ * each press toggles them as Caps Lock does on the host; the Windows port gets
+ * there through keystat_senddata(). */
+
 /* Keys that are the same on both keyboard types */
 const KeyMap kCommon[] = {
 	{ KEY_PAUSE,      0x60 },  /* STOP */
@@ -77,7 +82,7 @@ const KeyMap kCommon[] = {
 	{ KEY_RIGHTBRACE, 0x1b },  /* [ { */
 	{ KEY_ENTER,      0x1c },
 	{ KEY_LEFTCTRL,   0x74 },  /* CTRL */
-	{ KEY_CAPSLOCK,   0x71 },  /* CAPS */
+	{ KEY_CAPSLOCK,   0x81 },  /* CAPS, locking (see below) */
 	{ KEY_A,          0x1d },
 	{ KEY_S,          0x1e },
 	{ KEY_D,          0x1f },
@@ -171,7 +176,7 @@ const KeyMap k106[] = {
 	{ KEY_RO,               0x33 },  /* _ */
 	{ KEY_KPCOMMA,          0x4f },
 	{ KEY_KPJPCOMMA,        0x4f },
-	{ KEY_KATAKANAHIRAGANA, 0x72 },  /* KANA */
+	{ KEY_KATAKANAHIRAGANA, 0x82 },  /* KANA, locking */
 	{ KEY_HENKAN,           0x35 },  /* XFER */
 	{ KEY_MUHENKAN,         0x51 },  /* NFER */
 };
