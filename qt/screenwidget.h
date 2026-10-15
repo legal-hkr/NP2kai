@@ -56,6 +56,7 @@ protected:
 private:
 	QImage          m_image;
 	PointerCapture *m_capture;
+	bool            m_captureClick;     /* the left button press only captured */
 
 	bool handleHotkey(QKeyEvent *event, bool pressed);
 };

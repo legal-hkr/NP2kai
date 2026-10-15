@@ -20,6 +20,7 @@
 ScreenWidget::ScreenWidget(QWidget *parent)
 	: QWidget(parent)
 	, m_capture(new PointerCapture(this))
+	, m_captureClick(false)
 {
 	setFocusPolicy(Qt::StrongFocus);
 	setAttribute(Qt::WA_OpaquePaintEvent);
@@ -240,10 +241,15 @@ void ScreenWidget::mousePressEvent(QMouseEvent *event)
 {
 	switch (event->button()) {
 	case Qt::LeftButton:
-		/* The click that captures the mouse also reaches the PC-98,
-		 * as in the wx port. */
-		m_capture->capture();
-		mousemng_onleft(TRUE);
+		/* The click that captures the mouse stays away from the PC-98, unlike
+		 * in the wx port: a game would take it for a click on whatever its
+		 * cursor rests on. Its release goes nowhere either. */
+		if (!m_capture->isCaptured()) {
+			m_capture->capture();
+			m_captureClick = true;
+		} else {
+			mousemng_onleft(TRUE);
+		}
 		break;
 	case Qt::RightButton:
 		if (m_capture->isCaptured()) {
@@ -263,7 +269,11 @@ void ScreenWidget::mouseReleaseEvent(QMouseEvent *event)
 {
 	switch (event->button()) {
 	case Qt::LeftButton:
-		mousemng_onleft(FALSE);
+		if (m_captureClick) {
+			m_captureClick = false;
+		} else {
+			mousemng_onleft(FALSE);
+		}
 		break;
 	case Qt::RightButton:
 		mousemng_onright(FALSE);
@@ -285,5 +295,6 @@ void ScreenWidget::focusOutEvent(QFocusEvent *event)
 	/* Nothing may stay pressed or grabbed behind another window */
 	wxkbd_reset();
 	m_capture->release();
+	m_captureClick = false;
 	QWidget::focusOutEvent(event);
 }

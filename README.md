@@ -73,7 +73,7 @@ $ sudo cmake --install build_qt
 
 - Locate BIOS files to `~/.config/qtnp21kai` (`~/.config/qtnp2kai` for i286).
 - Settings are in Emulate > Preferences, new disk images are made from the FDD and HDD menus.
-- The left mouse button captures the mouse for the PC-98, the middle button releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
+- A click with the left mouse button captures the mouse for the PC-98 (the click itself is not passed on), the middle button or F12 releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
 - Runs under Wayland and X11 (`QT_QPA_PLATFORM=xcb`).
 - The interface follows the system language: German, Japanese, Polish, or English for any other. `LANGUAGE=en` (or `de`, `ja`, `pl`) picks one for a single run. The standard buttons and file dialogs take their words from Qt's own translations (`qt6-translations-l10n`).
 - Translations are in `qt/translations`. After strings change in the sources, `cmake --build build_qt --target update_translations` refreshes the `.ts` files; new strings are left unfinished for Qt Linguist and show in English until translated.
