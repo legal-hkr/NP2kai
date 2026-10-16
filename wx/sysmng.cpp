@@ -163,7 +163,9 @@ void sysmng_updatecaption(UINT8 flag)
 		for (i = 0; i < 4; i++) {
 			if (sxsi_getdevtype(i) == SXSIDEV_CDROM) {
 				snprintf(work, sizeof(work), "  CDD%d:", cddrvnum++);
-				const OEMCHAR *fname = diskdrv_getsxsi((REG8)i);
+				/* The disc's own name: diskdrv_getsxsi() gives the
+				 * slot's hard disk image, empty for a CD-ROM drive */
+				const OEMCHAR *fname = sxsi_getfilename((REG8)i);
 				if (fname && fname[0]) {
 					milstr_ncat(titlestr, work, NELEMENTS(titlestr));
 					milstr_ncat(titlestr, file_getname((char *)fname), NELEMENTS(titlestr));

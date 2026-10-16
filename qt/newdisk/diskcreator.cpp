@@ -78,16 +78,32 @@ bool isInUse(const QString &path)
 	auto same = [&target](const OEMCHAR *p) {
 		return p && p[0] && QFileInfo(QString::fromUtf8(p)).canonicalFilePath() == target;
 	};
-	for (int i = 0; i < 4; i++) {
-		if (same(np2cfg.fddfile[i]) || same(np2cfg.sasihdd[i])) {
+	/* The arrays differ in size: two SASI drives on i286, four IDE slots on
+	 * IA-32, each with a CD image of its own */
+	for (const auto &file : np2cfg.fddfile) {
+		if (same(file)) {
 			return true;
 		}
-#if defined(SUPPORT_SCSI)
-		if (same(np2cfg.scsihdd[i])) {
-			return true;
-		}
-#endif
 	}
+	for (const auto &file : np2cfg.sasihdd) {
+		if (same(file)) {
+			return true;
+		}
+	}
+#if defined(SUPPORT_IDEIO)
+	for (const auto &file : np2cfg.idecd) {
+		if (same(file)) {
+			return true;
+		}
+	}
+#endif
+#if defined(SUPPORT_SCSI)
+	for (const auto &file : np2cfg.scsihdd) {
+		if (same(file)) {
+			return true;
+		}
+	}
+#endif
 	return false;
 }
 
@@ -152,8 +168,13 @@ bool runWithProgress(QWidget *parent, const QString &label, bool hasProgress,
 	QEventLoop loop;
 	QObject::connect(worker, &QThread::finished, &loop, &QEventLoop::quit);
 	/* Cancel hides the dialog; it stays up until the core has noticed the
-	 * flag and deleted the partial file */
+	 * flag and deleted the partial file. A job that cannot stop (Escape still
+	 * cancels the dialog) just runs on. */
 	QObject::connect(&dialog, &QProgressDialog::canceled, &dialog, [&]() {
+		if (!hasProgress) {
+			dialog.show();
+			return;
+		}
 		cancel = 1;
 		dialog.setLabelText(tr("Cancelling..."));
 		dialog.setCancelButton(nullptr);

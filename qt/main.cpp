@@ -61,8 +61,9 @@ static void watchSignals(QWidget *window)
 }
 
 /* Breeze leaves no room for the submenu arrow when a submenu is the widest
- * item, so the arrow covers the end of its title; the FDD, HDD and CD menus
- * hold nothing else. One line height more fits the arrow in any style. */
+ * item, so the arrow covers the end of its title, as a drive of the Media menu
+ * named after a long image is. One line height more fits the arrow in any
+ * style. */
 class MenuArrowStyle : public QProxyStyle
 {
 public:

@@ -27,7 +27,7 @@ public:
 	ScreenWidget *screen() const { return m_screen; }
 
 	/* Drive slots: 4 IDE (IA-32) or 2 SASI (i286); an IDE slot holds a hard
-	 * disk or a CD-ROM drive, as set in the preferences */
+	 * disk or a CD-ROM drive, as the running machine has it */
 	static int hdSlots();
 	static bool isCdSlot(int slot);
 
@@ -91,6 +91,7 @@ private:
 
 	void startPause();
 	void reset();
+	void resetMachine();
 	void openPreferences();
 	void openFd(int drv);
 	void ejectFd(int drv);
@@ -98,8 +99,9 @@ private:
 	void ejectHd(int drv);
 	void openCd(int drv);
 	void ejectCd(int drv);
-	void setSpeed(UINT32 speed);
-	void setVolume(UINT8 volume);
+	/* save: write the configuration now; a slider saves once, when it closes */
+	void setSpeed(UINT32 speed, bool save = true);
+	void setVolume(UINT8 volume, bool save = true);
 	void toggleMute();
 	void toggleSpeed();
 	void popupVolume();

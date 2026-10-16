@@ -480,10 +480,21 @@ void MainWindow::startPause()
 	}
 }
 
+/* With the emulator thread stopped: it may be inside pccore_exec() */
 void MainWindow::reset()
+{
+	stopEmulation();
+	resetMachine();
+	startEmulation();
+}
+
+/* For callers that have stopped the emulation already. The reset applies the
+ * device types of the drive slots, which the menus follow. */
+void MainWindow::resetMachine()
 {
 	pccore_reset();
 	soundmng_reset();
+	updateMenuStatus();
 }
 
 void MainWindow::openPreferences()
@@ -495,7 +506,7 @@ void MainWindow::openPreferences()
 		    && QMessageBox::question(this, dialog.windowTitle(),
 		           tr("Some of the changes take effect when the PC-98 is reset. Reset it now?"))
 		       == QMessageBox::Yes) {
-			reset();
+			resetMachine();
 		}
 		if (dialog.needsRestart()) {
 			QMessageBox::information(this, dialog.windowTitle(),
@@ -517,11 +528,13 @@ int MainWindow::hdSlots()
 #endif
 }
 
-/* By the preferences, which the HDD menu also sets */
+/* As the running machine has it: a device type changed in the preferences
+ * takes effect when the PC-98 is reset, and the menus and the status bar
+ * follow it then */
 bool MainWindow::isCdSlot(int slot)
 {
 #if defined(SUPPORT_IDEIO)
-	return np2cfg.idetype[slot] == SXSIDEV_CDROM;
+	return sxsi_getdevtype(static_cast<REG8>(slot)) == SXSIDEV_CDROM;
 #else
 	(void)slot;
 	return false;
@@ -910,20 +923,24 @@ void MainWindow::updateStatusBar()
 	m_speedButton->setToolTip(tr("Speed: %1").arg(speedLabel(np2cfg.emuspeed)));
 }
 
-void MainWindow::setVolume(UINT8 volume)
+void MainWindow::setVolume(UINT8 volume, bool save)
 {
 	np2cfg.vol_master = volume;
 	PrefDialog::applyVolumes();
-	sysmng_update(SYS_UPDATECFG);
+	if (save) {
+		sysmng_update(SYS_UPDATECFG);
+	}
 	updateStatusBar();
 }
 
 /* pccore_reset() is what applies the speed otherwise */
-void MainWindow::setSpeed(UINT32 speed)
+void MainWindow::setSpeed(UINT32 speed, bool save)
 {
 	np2cfg.emuspeed = speed;
 	timing_setspeed(speed * 128 / 100);
-	sysmng_update(SYS_UPDATECFG);
+	if (save) {
+		sysmng_update(SYS_UPDATECFG);
+	}
 	updateMenuStatus();
 }
 
@@ -947,11 +964,13 @@ void MainWindow::toggleSpeed()
 	}
 }
 
-/* A vertical slider above the button, as wx's popup window */
+/* A vertical slider above the button, as wx's popup window. Its steps change
+ * the setting at once; the configuration file is written when it closes. */
 static QSlider *popupSlider(QWidget *button, QLabel **label)
 {
 	auto *menu = new QMenu(button);
 	menu->setAttribute(Qt::WA_DeleteOnClose);
+	QObject::connect(menu, &QMenu::aboutToHide, menu, []() { sysmng_update(SYS_UPDATECFG); });
 	auto *box = new QWidget(menu);
 	auto *layout = new QVBoxLayout(box);
 	*label = new QLabel(box);
@@ -979,7 +998,7 @@ void MainWindow::popupVolume()
 	label->setNum(np2cfg.vol_master);
 	connect(slider, &QSlider::valueChanged, this, [this, label](int value) {
 		label->setNum(value);
-		setVolume(static_cast<UINT8>(value));
+		setVolume(static_cast<UINT8>(value), false);
 	});
 }
 
@@ -998,7 +1017,7 @@ void MainWindow::popupSpeed()
 	label->setText(speedLabel(np2cfg.emuspeed));
 	connect(slider, &QSlider::valueChanged, this, [this, label](int value) {
 		label->setText(speedLabel(kSpeeds[value]));
-		setSpeed(kSpeeds[value]);
+		setSpeed(kSpeeds[value], false);
 	});
 }
 
@@ -1119,8 +1138,9 @@ void MainWindow::cycleShot()
 	QSaveFile file(QFile::decodeName(cycle_shot_path));
 	if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "PNG") || !file.commit()) {
 		setCycleShot(false);
+		/* For a while: the message covers the drives */
 		statusBar()->showMessage(tr("Periodic screenshot stopped: could not write %1")
-		    .arg(QDir::toNativeSeparators(file.fileName())));
+		    .arg(QDir::toNativeSeparators(file.fileName())), 10000);
 	}
 }
 
