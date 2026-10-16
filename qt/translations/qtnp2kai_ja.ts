@@ -685,10 +685,6 @@
         <translation>終了(&amp;X)</translation>
     </message>
     <message>
-        <source>&amp;FDD</source>
-        <translation>FDD(&amp;F)</translation>
-    </message>
-    <message>
         <source>FD &amp;%1</source>
         <translation>FD &amp;%1</translation>
     </message>
@@ -705,33 +701,13 @@
         <translation>新規フロッピーディスクイメージ(&amp;N)...</translation>
     </message>
     <message>
-        <source>H&amp;DD</source>
-        <translation>HDD(&amp;D)</translation>
-    </message>
-    <message>
-        <source>HD &amp;%1</source>
-        <translation>HD &amp;%1</translation>
-    </message>
-    <message>
         <source>&amp;Eject</source>
         <comment>hard disk</comment>
         <translation>取り外し(&amp;E)</translation>
     </message>
     <message>
-        <source>&amp;New Hard Disk Image...</source>
-        <translation>新規ハードディスクイメージ(&amp;N)...</translation>
-    </message>
-    <message>
-        <source>&amp;CD</source>
-        <translation>CD(&amp;C)</translation>
-    </message>
-    <message>
         <source>&amp;CD-ROM</source>
         <translation>CD-ROM(&amp;C)</translation>
-    </message>
-    <message>
-        <source>No CD-ROM drive</source>
-        <translation>CD-ROM ドライブなし</translation>
     </message>
     <message>
         <source>&amp;View</source>
@@ -871,10 +847,6 @@
         <translation>取り外し(&amp;E): %1</translation>
     </message>
     <message>
-        <source>CD-ROM &amp;%1</source>
-        <translation>CD-ROM &amp;%1</translation>
-    </message>
-    <message>
         <source>&amp;Start</source>
         <translation>再開(&amp;S)</translation>
     </message>
@@ -909,6 +881,22 @@
     <message>
         <source>Mount CD Image</source>
         <translation>CD イメージを開く</translation>
+    </message>
+    <message>
+        <source>&amp;Media</source>
+        <translation>メディア(&amp;M)</translation>
+    </message>
+    <message>
+        <source>HD %1</source>
+        <translation>HD %1</translation>
+    </message>
+    <message>
+        <source>New &amp;Hard Disk Image...</source>
+        <translation>新規ハードディスクイメージ(&amp;H)...</translation>
+    </message>
+    <message>
+        <source>CD-ROM %1</source>
+        <translation>CD-ROM %1</translation>
     </message>
     <message>
         <source>CD images (*.iso *.cue *.ccd *.mds *.nrg);;All files (*)</source>

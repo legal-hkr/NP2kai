@@ -685,10 +685,6 @@
         <translation>&amp;Beenden</translation>
     </message>
     <message>
-        <source>&amp;FDD</source>
-        <translation>&amp;FDD</translation>
-    </message>
-    <message>
         <source>FD &amp;%1</source>
         <translation>FD &amp;%1</translation>
     </message>
@@ -705,33 +701,13 @@
         <translation>&amp;Neues Diskettenabbild...</translation>
     </message>
     <message>
-        <source>H&amp;DD</source>
-        <translation>H&amp;DD</translation>
-    </message>
-    <message>
-        <source>HD &amp;%1</source>
-        <translation>HD &amp;%1</translation>
-    </message>
-    <message>
         <source>&amp;Eject</source>
         <comment>hard disk</comment>
         <translation>&amp;Entfernen</translation>
     </message>
     <message>
-        <source>&amp;New Hard Disk Image...</source>
-        <translation>&amp;Neues Festplattenabbild...</translation>
-    </message>
-    <message>
-        <source>&amp;CD</source>
-        <translation>&amp;CD</translation>
-    </message>
-    <message>
         <source>&amp;CD-ROM</source>
         <translation>&amp;CD-ROM</translation>
-    </message>
-    <message>
-        <source>No CD-ROM drive</source>
-        <translation>Kein CD-ROM-Laufwerk</translation>
     </message>
     <message>
         <source>&amp;View</source>
@@ -871,10 +847,6 @@
         <translation>&amp;Entfernen: %1</translation>
     </message>
     <message>
-        <source>CD-ROM &amp;%1</source>
-        <translation>CD-ROM &amp;%1</translation>
-    </message>
-    <message>
         <source>&amp;Start</source>
         <translation>&amp;Fortsetzen</translation>
     </message>
@@ -909,6 +881,22 @@
     <message>
         <source>Mount CD Image</source>
         <translation>CD-Abbild einlegen</translation>
+    </message>
+    <message>
+        <source>&amp;Media</source>
+        <translation>&amp;Medien</translation>
+    </message>
+    <message>
+        <source>HD %1</source>
+        <translation>HD %1</translation>
+    </message>
+    <message>
+        <source>New &amp;Hard Disk Image...</source>
+        <translation>Neues &amp;Festplattenabbild...</translation>
+    </message>
+    <message>
+        <source>CD-ROM %1</source>
+        <translation>CD-ROM %1</translation>
     </message>
     <message>
         <source>CD images (*.iso *.cue *.ccd *.mds *.nrg);;All files (*)</source>

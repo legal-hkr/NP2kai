@@ -69,12 +69,10 @@ private:
 	QAction *m_actTextHook;
 	QMenu   *m_fdMenu[4];
 	QMenu   *m_hdMenu[4];   /* the slots beyond hdSlots() stay null */
-	QMenu   *m_cdMenu[4];
+	QMenu   *m_cdMenu[4];   /* likewise */
 	QAction *m_actFdEject[4];   /* named after the image in the drive */
 	QAction *m_actHdEject[4];
 	QAction *m_actCdEject[4];
-	QMenu   *m_cdTop;
-	QAction *m_actNoCd;
 
 	/* Status bar: left click mutes or goes back to x1, right click sets */
 	QToolButton *m_volButton;

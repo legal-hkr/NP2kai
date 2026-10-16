@@ -72,7 +72,7 @@ $ sudo cmake --install build_qt
 |BUILD_I286|OFF*|Build IA-32|qtnp21kai|
 
 - Locate BIOS files to `~/.config/qtnp21kai` (`~/.config/qtnp2kai` for i286).
-- Settings are in Emulate > Preferences, new disk images are made from the FDD and HDD menus.
+- Settings are in Emulate > Preferences; the Media menu mounts the drives and makes new disk images.
 - A click with the left mouse button captures the mouse for the PC-98 (the click itself is not passed on), the middle button or F12 releases it. Menu shortcuts work while the mouse is free; once it is captured, every key goes to the PC-98 except Alt+Enter (full screen), F11 and F12.
 - The status bar shows the floppy drives, the four IDE slots (two SASI drives for i286) with a hard disk or CD-ROM icon as set in the preferences, the network card, the CAPS and カナ locks and the mouse, with the keys that release it lit while it is captured. A drive is dimmed when empty and lights up green while it reads and red while it writes; a click opens its menu.
 - Runs under Wayland and X11 (`QT_QPA_PLATFORM=xcb`).

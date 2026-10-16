@@ -259,44 +259,36 @@ void MainWindow::buildMenus()
 	emu->addSeparator();
 	shortcut(emu->addAction(tr("E&xit"), this, &QWidget::close), QKeySequence::Quit);
 
-	/* One menu per kind of drive, for quick access; a new image is made
-	 * where it will be inserted */
-	QMenu *fdd = menuBar()->addMenu(tr("&FDD"));
+	/* All drives in one menu, in the order of the status bar, whose icons
+	 * open the same submenus: the floppy drives that are on, then each slot
+	 * as the hard disk or the CD-ROM drive set in it. The digits stay the
+	 * floppies' mnemonics. */
+	QMenu *media = menuBar()->addMenu(tr("&Media"));
 	for (int drv = 0; drv < 4; drv++) {
-		m_fdMenu[drv] = fdd->addMenu(tr("FD &%1").arg(drv + 1));
+		m_fdMenu[drv] = media->addMenu(tr("FD &%1").arg(drv + 1));
 		m_fdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openFd(drv); });
 		m_actFdEject[drv] = m_fdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectFd(drv); });
 	}
-	fdd->addSeparator();
-	fdd->addAction(tr("&New Floppy Image..."), this, [this]() { DiskCreator::newFdImage(this); });
-
-	/* Each slot is in the HDD or the CD menu, by the device set in it */
-	QMenu *hdd = menuBar()->addMenu(tr("H&DD"));
+	media->addSeparator();
 	for (int drv = 0; drv < 4; drv++) {
 		m_hdMenu[drv] = nullptr;
 		m_actHdEject[drv] = nullptr;
+		m_cdMenu[drv] = nullptr;
+		m_actCdEject[drv] = nullptr;
 		if (drv >= hdSlots()) {
 			continue;
 		}
-		m_hdMenu[drv] = hdd->addMenu(tr("HD &%1").arg(drv + 1));
+		m_hdMenu[drv] = media->addMenu(tr("HD %1").arg(drv + 1));
 		m_hdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openHd(drv); });
 		m_actHdEject[drv] = m_hdMenu[drv]->addAction(tr("&Eject", "hard disk"), this, [this, drv]() { ejectHd(drv); });
-	}
-	hdd->addSeparator();
-	hdd->addAction(tr("&New Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });
-
-	m_cdTop = menuBar()->addMenu(tr("&CD"));
-	for (int drv = 0; drv < 4; drv++) {
-		m_cdMenu[drv] = m_cdTop->addMenu(tr("&CD-ROM"));
+		m_cdMenu[drv] = media->addMenu(tr("&CD-ROM"));
 		m_cdMenu[drv]->addAction(tr("&Open Image..."), this, [this, drv]() { openCd(drv); });
 		m_actCdEject[drv] = m_cdMenu[drv]->addAction(tr("&Eject"), this, [this, drv]() { ejectCd(drv); });
 	}
-	m_actNoCd = m_cdTop->addAction(tr("No CD-ROM drive"));
-	m_actNoCd->setEnabled(false);
-#if !defined(SUPPORT_IDEIO)
-	/* SASI has no CD-ROM drives */
-	m_cdTop->menuAction()->setVisible(false);
-#endif
+	/* A new image is made where it will be inserted */
+	media->addSeparator();
+	media->addAction(tr("&New Floppy Image..."), this, [this]() { DiskCreator::newFdImage(this); });
+	media->addAction(tr("New &Hard Disk Image..."), this, [this]() { DiskCreator::newHdImage(this); });
 
 	QMenu *view = menuBar()->addMenu(tr("&View"));
 	m_actFullScreen = view->addAction(tr("&Full Screen"), this, &MainWindow::toggleFullScreen);
@@ -432,6 +424,8 @@ void MainWindow::updateMenuStatus()
 	/* Eject names the image it takes out, as the status bar's menus are
 	 * the same and have no title */
 	for (int i = 0; i < 4; i++) {
+		/* A drive is turned on in the preferences, as the status bar shows */
+		m_fdMenu[i]->menuAction()->setVisible((np2cfg.fddequip & (1 << i)) != 0);
 		m_fdMenu[i]->setTitle(withFileName(tr("FD &%1").arg(i + 1), np2cfg.fddfile[i]));
 		const QString fd = menuFileName(np2cfg.fddfile[i]);
 		m_actFdEject[i]->setText(fd.isEmpty() ? tr("&Eject") : tr("&Eject %1").arg(fd));
@@ -439,22 +433,23 @@ void MainWindow::updateMenuStatus()
 		if (m_hdMenu[i]) {
 			const OEMCHAR *path = diskdrv_getsxsi(static_cast<REG8>(i));
 			m_hdMenu[i]->menuAction()->setVisible(!cd);
-			m_hdMenu[i]->setTitle(withFileName(tr("HD &%1").arg(i + 1), path));
+			m_hdMenu[i]->setTitle(withFileName(tr("HD %1").arg(i + 1), path));
 			const QString hd = menuFileName(path);
 			m_actHdEject[i]->setText(hd.isEmpty() ? tr("&Eject", "hard disk") : tr("&Eject %1", "hard disk").arg(hd));
 		}
-		m_cdMenu[i]->menuAction()->setVisible(cd);
+		if (m_cdMenu[i]) {
+			m_cdMenu[i]->menuAction()->setVisible(cd);
+		}
 		if (cd) {
 			/* Numbered only when there is more than one */
 			cdNumber++;
-			const QString label = (cdCount == 1) ? tr("&CD-ROM") : tr("CD-ROM &%1").arg(cdNumber);
+			const QString label = (cdCount == 1) ? tr("&CD-ROM") : tr("CD-ROM %1").arg(cdNumber);
 			const OEMCHAR *path = sxsi_getfilename(static_cast<REG8>(i));
 			m_cdMenu[i]->setTitle(withFileName(label, path));
 			const QString disc = menuFileName(path);
 			m_actCdEject[i]->setText(disc.isEmpty() ? tr("&Eject") : tr("&Eject %1").arg(disc));
 		}
 	}
-	m_actNoCd->setVisible(cdCount == 0);
 	m_actFullScreen->setChecked(isFullScreen());
 	m_actPixelPerfect->setChecked(np2oscfg.pixelperfect != 0);
 	m_actForce43->setChecked(np2oscfg.force43 != 0);
