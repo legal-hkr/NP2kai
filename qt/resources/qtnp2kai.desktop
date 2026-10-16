@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=qtNP2kai
+Name=NP2kai (Qt)
 GenericName=PC-9801 Emulator
 GenericName[de]=PC-9801-Emulator
 GenericName[ja]=PC-9801エミュレータ
@@ -13,4 +13,4 @@ Exec=qtnp2kai
 Icon=np2
 Categories=Game;Emulator;
 StartupWMClass=qtnp2kai
-Name[ja]=qtNP2kai
+Name[ja]=NP2kai (Qt)

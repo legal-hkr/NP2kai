@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=qtNP21kai IA-32
+Name=NP21kai (Qt)
 GenericName=PC-9821 Emulator IA-32
 GenericName[de]=PC-9821-Emulator IA-32
 GenericName[ja]=PC-9821エミュレータ IA-32
@@ -13,4 +13,4 @@ Exec=qtnp21kai
 Icon=np2
 Categories=Game;Emulator;
 StartupWMClass=qtnp21kai
-Name[ja]=qtNP21kai IA-32
+Name[ja]=NP21kai (Qt)

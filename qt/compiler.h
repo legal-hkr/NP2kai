@@ -50,10 +50,11 @@ void np2qt_msgbox(const char *title, const char *msg);
 #define NP2_WX_CONFIGDIR ".config"
 #if defined(CPUCORE_IA32)
 #define NP2_WX_APPNAME  "qtnp21kai"
+#define NP2_WX_TITLE    "NP21kai (Qt)"
 #else
 #define NP2_WX_APPNAME  "qtnp2kai"
+#define NP2_WX_TITLE    "NP2kai (Qt)"
 #endif
-#define NP2_WX_TITLESUFFIX " Qt"
 
 #include <common/milstr.h>
 #include <trace.h>

@@ -361,7 +361,7 @@ void MainWindow::buildMenus()
 	m_actKeyDisp->setStatusTip(tr("Show the notes the FM and MIDI channels play"));
 
 	QMenu *help = menuBar()->addMenu(tr("&Help"));
-	help->addAction(tr("&About %1...").arg(QStringLiteral(NP2_WX_APPNAME)), this, &MainWindow::about);
+	help->addAction(tr("&About %1...").arg(QStringLiteral(NP2_WX_TITLE)), this, &MainWindow::about);
 
 	/* Menus take keyboard focus; give it back to the screen afterwards */
 	for (QAction *a : menuBar()->actions()) {
@@ -1145,7 +1145,7 @@ void MainWindow::about()
 {
 	extern const OEMCHAR np2version[];
 	QMessageBox box(this);
-	box.setWindowTitle(tr("About %1").arg(QStringLiteral(NP2_WX_APPNAME)));
+	box.setWindowTitle(tr("About %1").arg(QStringLiteral(NP2_WX_TITLE)));
 	box.setIconPixmap(windowIcon().pixmap(64));
 	box.setTextFormat(Qt::RichText);
 	box.setTextInteractionFlags(Qt::TextBrowserInteraction);
@@ -1153,7 +1153,7 @@ void MainWindow::about()
 	               "<p>Neko Project II by Yui, ported to UNIX by NONAKA Kimihiro; "
 	               "NP2kai by AZO234; NP21/W by SimK.</p>"
 	               "<p><a href=\"https://github.com/AZO234/NP2kai\">github.com/AZO234/NP2kai</a></p>")
-	            .arg(QStringLiteral(NP2_WX_APPNAME), QString::fromUtf8(np2version), QString::fromLatin1(qVersion())));
+	            .arg(QStringLiteral(NP2_WX_TITLE), QString::fromUtf8(np2version), QString::fromLatin1(qVersion())));
 	stopEmulation();
 	box.exec();
 	startEmulation();

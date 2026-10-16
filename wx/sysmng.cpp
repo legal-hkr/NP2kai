@@ -21,10 +21,9 @@
 #include <stdio.h>
 #include <atomic>
 
-/* Frontend tag after the program name in the title; a port reusing this file
- * may define its own in compiler.h. */
-#ifndef NP2_WX_TITLESUFFIX
-#define NP2_WX_TITLESUFFIX " wx"
+/* The program's name in the title, from compiler.h */
+#ifndef NP2_WX_TITLE
+#define NP2_WX_TITLE NP2_WX_APPNAME
 #endif
 
 #if defined(SUPPORT_IDEIO)
@@ -196,8 +195,7 @@ void sysmng_updatecaption(UINT8 flag)
 		}
 	}
 
-	milstr_ncpy(work, NP2_WX_APPNAME, sizeof(work));
-	milstr_ncat(work, NP2_WX_TITLESUFFIX, sizeof(work));
+	milstr_ncpy(work, NP2_WX_TITLE, sizeof(work));
 #if defined(SUPPORT_STATSAVE)
 	if (np2_stateslotnow > 0) {
 		char slot[32];
